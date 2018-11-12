@@ -1,0 +1,2 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Mozilla Multi Account Manager formerly known as guardDuty2MozDef subscribes to gd cloudwatch events and outputs MozDef format message in an SQS queue.

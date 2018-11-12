@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Mozilla Multi Account Manager for AWS GuardDuty
+Resources:
+  GuardDutyInvitationManager:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Tags:
+        - Key: application
+          Value: guardduty-multi-account-manager
+          TemplateURL: !Join [ '', [ !Ref S3TemplateLocation, guardduty-invitation-manager.yml ] ]
+  GuardDutyEventNormalization:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Tags:
+        - Key: application
+          Value: guardduty-multi-account-manager
+          TemplateURL: !Join [ '', [ !Ref S3TemplateLocation, guardduty-event-normalization.yml ] ]

@@ -1,0 +1,2 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Mozilla Multi Account Manager inviation manager lambda function to run in master account.

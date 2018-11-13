@@ -1,2 +1,50 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager member account roles to allow guardDuty master to accept invitations.
+Metadata:
+  Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
+Parameters:
+  MasterAccountPrincipal:
+    Type: String
+    Default: arn:aws:iam::371522382791:root
+    Description: The ARN of the AWS account of the GuardDuty master
+  SNSArnForPublishingIAMRoleArn:
+    Type: String
+    Default: arn:aws:sns:us-west-2:371522382791:insert-our-final-sns-topic-here
+    Description: The ARN of the SNS Topic to publish an event to with the new IAM Role ARN of the GuardDuty Invitation Acceptor
+Resources:
+  GuardDutyInvitationAcceptorIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Ref MasterAccountPrincipal
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: AllowAcceptingGuardDutyInvitation
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - guardduty:ListDetectors
+                  - guardduty:CreateDetector
+                  - guardduty:AcceptInvitation
+                Resource: '*'
+  PublishIAMRoleArnsToSNS:
+    Type: Custom::PublishIAMRoleArnsToSNS
+    Version: '1.0'
+    Properties:
+      ServiceToken: !Ref SNSArnForPublishingIAMRoleArn
+      GuardDutyMemberAccountId: !Ref AWS::AccountId
+      GuardDutyMemberAccountIAMRoleArn: !GetAtt GuardDutyInvitationAcceptorIAMRole.Arn
+      GuardDutyMemberAccountIAMRoleName: !Ref GuardDutyInvitationAcceptorIAMRole
+Outputs:
+  GuardDutyInvitationAcceptorRoleName:
+    Description: IAM Role name of the Guard Duty Invitation Acceptor
+    Value: !Ref GuardDutyInvitationAcceptorIAMRole
+  GuardDutyInvitationAcceptorRoleArn:
+    Description: ARN of the Guard Duty Invitation Acceptor IAM Role
+    Value: !GetAtt GuardDutyInvitationAcceptorIAMRole.Arn

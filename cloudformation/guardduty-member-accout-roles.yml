@@ -9,7 +9,7 @@ Parameters:
     Description: The ARN of the AWS account of the GuardDuty master
   SNSArnForPublishingIAMRoleArn:
     Type: String
-    Default: arn:aws:sns:us-west-2:371522382791:insert-our-final-sns-topic-here
+    Default: arn:aws:sns:us-west-2:371522382791:cloudformation-stack-emissions
     Description: The ARN of the SNS Topic to publish an event to with the new IAM Role ARN of the GuardDuty Invitation Acceptor
 Resources:
   GuardDutyInvitationAcceptorIAMRole:

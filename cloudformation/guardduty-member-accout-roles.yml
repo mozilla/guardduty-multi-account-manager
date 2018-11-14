@@ -32,6 +32,10 @@ Resources:
                   - guardduty:ListDetectors
                   - guardduty:CreateDetector
                   - guardduty:AcceptInvitation
+                  - guardduty:GetDetector
+                  - guardduty:GetInvitationsCount
+                  - guardduty:GetMasterAccount
+                  - guardduty:UpdateDetector
                 Resource: '*'
   PublishIAMRoleArnsToSNS:
     Type: Custom::PublishIAMRoleArnsToSNS

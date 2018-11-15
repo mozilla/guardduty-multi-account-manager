@@ -42,6 +42,7 @@ Resources:
     Version: '1.0'
     Properties:
       ServiceToken: !Ref SNSArnForPublishingIAMRoleArn
+      category: GuardDuty Multi Account Member Role
       GuardDutyMemberAccountId: !Ref AWS::AccountId
       GuardDutyMemberAccountIAMRoleArn: !GetAtt GuardDutyInvitationAcceptorIAMRole.Arn
       GuardDutyMemberAccountIAMRoleName: !Ref GuardDutyInvitationAcceptorIAMRole

@@ -46,6 +46,68 @@ Resources:
       GuardDutyMemberAccountId: !Ref AWS::AccountId
       GuardDutyMemberAccountIAMRoleArn: !GetAtt GuardDutyInvitationAcceptorIAMRole.Arn
       GuardDutyMemberAccountIAMRoleName: !Ref GuardDutyInvitationAcceptorIAMRole
+  CloudFormationLambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - lambda.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+        - PolicyName: AllowLambdaLoggingAndCreateServiceLinkedRole
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - logs:*
+                  - iam:CreateServiceLinkedRole
+                Resource: '*'
+  CreateGuardDutyServiceLinkedRoleFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: CloudFormationLambdaIAMRole
+    Properties:
+      Code:
+        ZipFile: |
+            import cfnresponse
+            import boto3, secrets, string
+
+
+            def handler(event, context):
+                client = boto3.client('iam')
+                created = False
+                try:
+                    if event['RequestType'] in ['Create', 'Update']:
+                        client.create_service_linked_role(
+                            AWSServiceName='guardduty.amazonaws.com',
+                            Description='A service-linked role required for Amazon '
+                                        'GuardDuty to access your resources.'
+                        )
+                        created = True
+                    elif event['RequestType'] == 'Delete':
+                        pass  # Leave the role in place when stack is deleted
+                except client.exceptions.InvalidInputException:
+                    pass  # Role already exists
+                physical_id = ''.join(
+                    secrets.choice(string.ascii_uppercase + string.digits) for _ in
+                    range(13))
+                cfnresponse.send(
+                    event, context, cfnresponse.SUCCESS, {'RoleCreated': created},
+                    "CreateGuardDutyServiceLinkedRole-%s" % physical_id)
+      Handler: index.handler
+      Runtime: python3.6
+      Role: !GetAtt CloudFormationLambdaIAMRole.Arn
+      Timeout: 20
+  CreateGuardDutyServiceLinkedRole:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt CreateGuardDutyServiceLinkedRoleFunction.Arn
 Outputs:
   GuardDutyInvitationAcceptorRoleName:
     Description: IAM Role name of the Guard Duty Invitation Acceptor

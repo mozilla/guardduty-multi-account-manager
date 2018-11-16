@@ -61,11 +61,6 @@ def get_session(role_arn=None):
     return boto_session
 
 
-def get_all_aws_regions(boto_session):
-    ec2 = boto_session.client('ec2')
-    return [x['RegionName'] for x in ec2.describe_regions()['Regions']]
-
-
 def create_detector(boto_session, region_name):
     gd = boto_session.client('guardduty', region_name=region_name)
     response = gd.create_detector(
@@ -154,7 +149,7 @@ def handle(event, context):
     """
     local_boto_session = get_session()
     local_account_id = boto3.client('sts').get_caller_identity()["Account"]
-    regions = get_all_aws_regions(local_boto_session)
+    guardduty_regions = local_boto_session.get_available_regions('guardduty')
     default_region = 'us-west-2'
     org_boto_session = get_session(os.environ.get('ORGANIZATION_IAM_ROLE_ARN'))
 
@@ -166,7 +161,7 @@ def handle(event, context):
     account_id_role_arn_map = get_account_role_map(
         local_boto_session, default_region)
 
-    for region_name in regions:
+    for region_name in guardduty_regions:
         # Ensure that a GuardDuty master detector is created
         local_detector_id = find_or_create_detector(
             local_boto_session, region_name)

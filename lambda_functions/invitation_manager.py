@@ -152,6 +152,7 @@ def handle(event, context):
     Set environment variables
       * ORGANIZATION_IAM_ROLE_ARN : IAM Role ARN to assume to reach AWS
         Organization parent account
+      * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to filter on
 
     :param event: Lambda event object
     :param context: Lambda context object
@@ -169,8 +170,15 @@ def handle(event, context):
         'Organization account ID map: {}'.format(organizations_account_id_map))
 
     # Filter out accounts if ACCOUNT_FILTER_LIST is set
-    for account_id in os.environ.get('ACCOUNT_FILTER_LIST', []):
-        del organizations_account_id_map[account_id]
+    for account_id in os.environ.get('ACCOUNT_FILTER_LIST', '').split():
+        if account_id in organizations_account_id_map:
+            del organizations_account_id_map[account_id]
+        else:
+            logger.error(
+                'Account ID {} present in ACCOUNT_FILTER_LIST is not one of '
+                'the {} accounts in the AWS Organization'.format(
+                    account_id, len(organizations_account_id_map)))
+
     logger.debug(
         'Filtered organization account ID map: {}'.format(
             organizations_account_id_map))

@@ -1,2 +1,123 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager formerly known as guardDuty2MozDef subscribes to gd cloudwatch events and outputs MozDef format message in an SQS queue.
+Resources:
+  GuardDutyToMozDefRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        -
+          PolicyName: "allow-sns-topic-publishing"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: "Allow"
+                Action: "sns:Publish"
+                Resource: !Ref SnsOutputTopic
+  GuardDutyPlumbingRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /service-role/
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+        - arn:aws:iam::aws:policy/AmazonSNSFullAccess
+        - arn:aws:iam::aws:policy/CloudWatchEventsFullAccess
+        - arn:aws:iam::aws:policy/AmazonEC2ReadOnlyAccess
+  SqsOutput:
+    Type: "AWS::SQS::Queue"
+  SnsOutputTopic:
+    Type: "AWS::SNS::Topic"
+    Properties:
+      Subscription:
+        -
+          Endpoint:
+            Fn::GetAtt:
+              - "SqsOutput"
+              - "Arn"
+          Protocol: "sqs"
+  LambdaInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      FunctionName: !GetAtt 'findingsToMozDef.Arn'
+  findingsToMozDef:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: 'python3.6'
+      Handler: lambda_functions/normalization.handle
+      Role: !GetAtt 'GuardDutyToMozDefRole.Arn'
+      Code:
+        S3Bucket: "infosec-public-data"
+        S3Key: "lambda/gd2md.zip"
+      Environment:
+        Variables:
+          minSeverityLevel: 'LOW'
+          SNS_OUTPUT_TOPIC_ARN: !Ref SnsOutputTopic
+  gdPlumbing:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: 'python3.6'
+      Timeout: '300'
+      Handler: lambda_functions/plumbing.handle
+      Role: !GetAtt 'GuardDutyPlumbingRole.Arn'
+      Code:
+        S3Bucket: "infosec-public-data"
+        S3Key: "lambda/plumbing.zip"
+      Environment:
+        Variables:
+          NORMALIZER_LAMBDA_FUNCTION: !GetAtt findingsToMozDef.Arn
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "ScheduledRule"
+      ScheduleExpression: "rate(1 hour)"
+      State: "ENABLED"
+      Targets:
+        -
+          Arn:
+            Fn::GetAtt:
+              - "gdPlumbing"
+              - "Arn"
+          Id: "TargetFunctionV1"
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: gdPlumbing
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn:
+        Fn::GetAtt:
+          - "ScheduledRule"
+          - "Arn"
+Outputs:
+  NormalizationLambdaFunction:
+    Description: The arn of the normalizer lambda.
+    Value: !GetAtt findingsToMozDef.Arn
+  OutputQueue:
+    Description: Where do the normalized events end up.  (SQS arn)
+    Value: !Ref SqsOutput

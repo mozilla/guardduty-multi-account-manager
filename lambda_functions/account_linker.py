@@ -83,6 +83,9 @@ def find_or_create_detector(boto_session, region_name):
     if len(resp['DetectorIds']) > 0:
         return resp['DetectorIds'][0]
     else:
+        logger.info(
+            '{} : Creating detector'.format(
+                region_name))
         resp = create_detector(boto_session, region_name)
         return resp['DetectorId']
 
@@ -162,21 +165,28 @@ def handle(event, context):
     # Fetch the accounts list from AWS Organizations
     organizations_account_id_map = get_account_id_email_map_from_organizations(
         org_boto_session, region_name=default_region)
+    logger.debug(
+        'Organization account ID map: {}'.format(organizations_account_id_map))
 
     # Filter out accounts if ACCOUNT_FILTER_LIST is set
     for account_id in os.environ.get('ACCOUNT_FILTER_LIST', []):
         del organizations_account_id_map[account_id]
+    logger.debug(
+        'Filtered organization account ID map: {}'.format(
+            organizations_account_id_map))
 
     # Get IAM Role ARNs for each account
     account_id_role_arn_map = get_account_role_map(
         local_boto_session, default_region)
+    logger.debug(
+        'Account ID IAM Role map: {}'.format(account_id_role_arn_map))
 
     for region_name in guardduty_regions:
         # Ensure that a GuardDuty master detector is created
         local_detector_id = find_or_create_detector(
             local_boto_session, region_name)
         logger.info(
-            'GuardDuty detector exists in region: {}, with Id: {}'.format(
+            '{} : GuardDuty detector exists with Id: {}'.format(
                 region_name, local_detector_id))
 
         # Fetch the GuardDuty members list
@@ -187,24 +197,35 @@ def handle(event, context):
             DetectorId=local_detector_id)
         members = {x['AccountId']: x['RelationshipStatus']
                    for x in response['Members']}
+        logger.debug('{} : Member dict : {}'.format(region_name, members))
 
         # Create a get_members function to work with the members list
         get_members = GetMembers(members)
 
         # Create members for accounts that haven't been created yet
-        client.create_members(
-            AccountDetails=[
-                {'AccountId': account_id, 'Email': email}
-                for account_id, email in organizations_account_id_map.items()
-                if account_id not in members
-                or account_id in get_members('REMOVED')],
-            DetectorId=local_detector_id)
+        account_details = [
+            {'AccountId': account_id, 'Email': email}
+            for account_id, email in organizations_account_id_map.items()
+            if account_id not in members
+            or account_id in get_members('REMOVED')]
+        if account_details:
+            logger.info(
+                '{} : Creating members : {}'.format(
+                    region_name, account_details))
+            client.create_members(
+                AccountDetails=account_details,
+                DetectorId=local_detector_id)
 
         # Invite members that have been created
-        client.invite_members(
-            AccountIds=get_members('CREATED', 'RESIGNED'),
-            DetectorId=local_detector_id,
-            DisableEmailNotification=True)
+        account_ids_to_invite = get_members('CREATED', 'RESIGNED')
+        if account_ids_to_invite:
+            logger.info(
+                '{} : Inviting members : {}'.format(
+                    region_name, account_ids_to_invite))
+            client.invite_members(
+                AccountIds=account_ids_to_invite,
+                DetectorId=local_detector_id,
+                DisableEmailNotification=True)
 
         for account_id, email in organizations_account_id_map.items():
             boto_session = get_session(account_id_role_arn_map[account_id])
@@ -213,6 +234,9 @@ def handle(event, context):
                 # Update member account detector to enabled
                 detector_id = find_or_create_detector(
                     boto_session, region_name)
+                logger.info(
+                    '{} : {} : Updating member to re-enable detector'.format(
+                        region_name, account_id))
                 client.update_detector(
                     DetectorId=detector_id,
                     Enable=True)
@@ -234,6 +258,9 @@ def handle(event, context):
                     invitation_id = next(
                         x['InvitationId'] for x in response['Invitations']
                         if x['AccountId'] == local_account_id)
+                    logger.info(
+                        '{} : {} : Member accepting invite'.format(
+                            region_name, account_id))
                     client.accept_invitation(
                         DetectorId=detector_id,
                         InvitationId=invitation_id,

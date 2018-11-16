@@ -163,6 +163,10 @@ def handle(event, context):
     organizations_account_id_map = get_account_id_email_map_from_organizations(
         org_boto_session, region_name=default_region)
 
+    # Filter out accounts if ACCOUNT_FILTER_LIST is set
+    for account_id in os.environ.get('ACCOUNT_FILTER_LIST', []):
+        del organizations_account_id_map[account_id]
+
     # Get IAM Role ARNs for each account
     account_id_role_arn_map = get_account_role_map(
         local_boto_session, default_region)

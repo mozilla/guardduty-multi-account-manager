@@ -1,18 +1,69 @@
 import boto3
 import logging
-
+import os
+from boto3.dynamodb.types import TypeDeserializer
+from boto3.dynamodb.transform import TransformationInjector
 
 logger = logging.getLogger(__name__)
-dynamodb_table_name = cloudformation-stack-emissions
+DYNAMODB_TABLE_NAME = 'cloudformation-stack-emissions'
+DB_CATEGORY = 'GuardDuty Multi Account Member Role'
 
 
-def get_session():
-    return boto3.session.Session()
+class GetMembers:
+    """Return a function which allows for filtering the member dict"""
+
+    def __init__(self, all_members):
+        self.all_members = all_members
+
+    def __call__(self, *args):
+        """Return the account IDs of accounts with one of the passed
+        relationship statuses
+
+        CREATED  : Member created by master but master hasn't invited member
+        INVITED  : Member invited by master with DisableEmailNotification=True
+        DISABLED : Member has accepted invitation but detector has been updated
+                   to Enable=False
+        ENABLED  : Member has accepted invitation
+        REMOVED  : Member has accepted invitation but detector has been deleted
+        RESIGNED : Member that had accepted the invitation, then later called
+                   DisassociateFromMasterAccount
+        EMAILVERIFICATIONINPROGRESS : Member invited by master with
+                                      DisableEmailNotification=False
+        EMAILVERIFICATIONFAILED :
+
+        :param args: Relationship status
+        :return: List of account IDs
+        """
+        return [k for k, v in self.all_members.items() if v in args]
+
+
+def get_session(role_arn=None):
+    """Return a boto session either for the current IAM Role or for an assumed
+    role if role_arn is passed
+
+    :param role_arn: An ARN of an AWS IAM role to assume
+    :return: Boto session
+    """
+    if role_arn is not None:
+        client = boto3.client('sts')
+        credentials = client.assume_role(
+            RoleArn=role_arn,
+            RoleSessionName='GuardDutyMultiAccountManager',
+            DurationSeconds=90
+        )['Credentials']
+        boto_session = boto3.session.Session(
+            aws_access_key_id=credentials['AccessKeyId'],
+            aws_secret_access_key=credentials['SecretAccessKey'],
+            aws_session_token=credentials['SessionToken']
+        )
+    else:
+        boto_session = boto3.session.Session()
+    return boto_session
 
 
 def get_all_aws_regions(boto_session):
     ec2 = boto_session.client('ec2')
-    return ec2.describe_regions()
+    return [x['RegionName'] for x in ec2.describe_regions()['Regions']]
 
 
 def create_detector(boto_session, region_name):
@@ -24,24 +75,14 @@ def create_detector(boto_session, region_name):
     return response
 
 
-def delete_detector(boto_session, region_name, detector_id):
+def get_all_detectors(boto_session, region_name):
     gd = boto_session.client('guardduty', region_name=region_name)
-    response = gd.delete_detector(
-        DetectorId=detector_id
-    )
+    response = gd.list_detectors()
     return response
 
 
-def get_all_detectors(boto_session, region_name, max_results):
-    gd = boto_session.client('guardduty', region_name=region_name)
-    response = gd.list_detectors(
-        MaxResults=max_results
-    )
-    return response
-
-
-def find_or_create_detector(boto_session, region_name, max_results):
-    resp = get_all_detectors(boto_session, region_name, max_results)
+def find_or_create_detector(boto_session, region_name):
+    resp = get_all_detectors(boto_session, region_name)
     if len(resp['DetectorIds']) > 0:
         return resp['DetectorIds'][0]
     else:
@@ -49,100 +90,146 @@ def find_or_create_detector(boto_session, region_name, max_results):
         return resp['DetectorId']
 
 
-def get_accounts_from_organizations(boto_session, region_name):
-    all_accounts = {'Accounts': []}
-    client = boto_session.client('organizations')
+def get_account_id_email_map_from_organizations(boto_session, region_name):
+    """List AWS Organization child accounts and return a map of account IDs to
+    account email addresses.
 
-    response = client.list_accounts(
-        MaxResults=10
-    )
-
-    for account in response.get('Accounts'):
-        all_accounts['Accounts'].append(account)
-
-    while response.get('NextToken', None):
-        response = client.list_accounts(
-            NextToken='string',
-            MaxResults=10
-        )
-
-        for account in respone.get('Accounts'):
-            all_accounts['Accounts'].append(account)
-
-    return all_accounts
+    :param boto_session: Boto session
+    :param region_name: AWS region name
+    :return: dict with account ID keys and email address values
+    """
+    client = boto_session.client('organizations', region_name=region_name)
+    paginator = client.get_paginator('list_accounts')
+    accounts = {}
+    map(accounts.update, {x['Accounts']['Id']: x['Accounts']['Email']
+                          for x in paginator.paginate()})
+    return accounts
 
 
-def invite_member_account(boto_session, region_name, account_data_structure, detector_id):
-    gd = boto_session.client('guardduty', region_name=region_name)
-    account_id = account_data_structure.get('Id')
+def get_account_role_map(boto_session, region_name):
+    """Fetch the ARNs of all the IAM Roles which people have created in other
+    AWS accounts which are inserted into DynamoDB with
+    http://github.com/gene1wood/cloudformation-cross-account-outputs
 
-    response = gd.invite_members(
-        AccountIds=[
-            account_id
-        ],
-        DetectorId=detector_id,
-        DisableEmailNotification=True
-    )
+    :return: dict with account ID keys and IAM Role ARN values
+    """
 
-    return response
+    client = boto_session.client('dynamodb', region_name=region_name)
 
+    paginator = client.get_paginator('scan')
+    service_model = client._service_model.operation_model('Scan')
+    trans = TransformationInjector(deserializer=TypeDeserializer())
+    items = []
+    for page in paginator.paginate(TableName=DYNAMODB_TABLE_NAME):
+        trans.inject_attribute_value_output(page, service_model)
+        items.extend([x['Items'] for x in page])
 
-def account_is_member_of_detector(boto_session, region_name, detector_id, account_id):
-    gd = boto_session.client('guardduty', region_name=region_name)
-    response = gd.get_members(
-        AccountIds=[
-            account_id
-        ],
-        DetectorId=detector_id
-    )
-
-    if len(response['Members']) > 0:
-        return True
-    else:
-        return False
-
-
-def get_list_of_roles():
-    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
-
+    return {x['aws-account-id']: x['GuardDutyMemberAccountIAMRoleArn']
+            for x in items
+            if x.get('category') == DB_CATEGORY
+            and {('aws-account-id',
+                  'GuardDutyMemberAccountIAMRoleArn')} <= set(x)}
 
 
 def handle(event, context):
-    boto_session = get_session()
-    response = get_all_aws_regions(boto_session)
+    """Move all AWS accounts in an AWS Organization which have delegated
+    permissions to this account towards a functioning member master
+    GuardDuty relationship.
+
+    * Fetch the accounts list from AWS Organizations
+    * Get IAM Role ARNs for each account
+    * For each region
+      * Ensure that a GuardDuty master detector is created
+      * Fetch the GuardDuty members list
+      * Create members for accounts that haven't been created yet
+      * Invite members that have been created
+      * For each account
+        * Update member account detector to enabled if DISABLED
+        * Get or create a detector in the member account
+        * For members with a pending invitationaAccept the invitation in the
+          member account
+
+    :param event: Lambda event object
+    :param context: Lambda context object
+    """
+    local_boto_session = get_session()
+    local_account_id = boto3.client('sts').get_caller_identity()["Account"]
+    regions = get_all_aws_regions(local_boto_session)
     default_region = 'us-west-2'
-    # XXX TBD assume the organizations role here
+    org_boto_session = get_session(os.environ.get('ORGANIZATION_IAM_ROLE_ARN'))
 
-    # Pull back the accounts list from AWSOrganizations
-    organizations_accounts = get_accounts_from_organizations(boto_session, region_name=default_region)
+    # Fetch the accounts list from AWS Organizations
+    organizations_account_id_map = get_account_id_email_map_from_organizations(
+        org_boto_session, region_name=default_region)
 
-    # Ensure that a guardDuty master is created in every region.
-    for region in response['Regions']:
-        region_name = region['RegionName']
-        result = find_or_create_detector(boto_session, region_name, max_results=len(response['Regions']))
-        logger.info('GuardDuty detector exists in region: {}, with Id: {}'.format(region, result))
+    # Get IAM Role ARNs for each account
+    account_id_role_arn_map = get_account_role_map(
+        local_boto_session, default_region)
 
-        for account in organizations_accounts['Accounts']:
-            # check if the account is already a member of the detector
-            is_member = account_is_member_of_detector(boto_session, region_name, detector_id=result, account_id=account['Id'])
+    for region_name in regions:
+        # Ensure that a GuardDuty master detector is created
+        local_detector_id = find_or_create_detector(
+            local_boto_session, region_name)
+        logger.info(
+            'GuardDuty detector exists in region: {}, with Id: {}'.format(
+                region_name, local_detector_id))
 
-            if is_member:
-                logger.info('Account: {} is already member of the guardDuty setup.'.format(account['Id']))
-                continue
-            else:
-                # assume guardduty management role in this member_account_session for example
-                logger.info('Assuming the guardDuty role for the account: {}'.format(account['Id']))
+        # Fetch the GuardDuty members list
+        client = local_boto_session.client(
+            'guardduty', region_name=region_name)
+        response = client.get_members(
+            AccountIds=account_id_role_arn_map.keys(),
+            DetectorId=local_detector_id)
+        members = {x['AccountId']: x['RelationshipStatus']
+                   for x in response['Members']}
 
+        # Create a get_members function to work with the members list
+        get_members = GetMembers(members)
 
-                # running find or create for the detector in region
-                logger.info(
-                    'Ensuring detector is present in the region: {} for account: {}'.format(region_name, account['Id'])
-                )
+        # Create members for accounts that haven't been created yet
+        client.create_members(
+            AccountDetails=[
+                {'AccountId': account_id, 'Email': email}
+                for account_id, email in organizations_account_id_map.items()
+                if account_id not in members
+                or account_id in get_members('REMOVED')],
+            DetectorId=local_detector_id)
 
-                # create a membership using the current boto session
+        # Invite members that have been created
+        client.invite_members(
+            AccountIds=get_members('CREATED', 'RESIGNED'),
+            DetectorId=local_detector_id,
+            DisableEmailNotification=True)
 
-
-                # send an invite using the boto_session from the running role
-
-
-                # Get the role arn for the account id from the dynamodb table
+        for account_id, email in organizations_account_id_map.items():
+            boto_session = get_session(account_id_role_arn_map[account_id])
+            if account_id in get_members('DISABLED'):
+                # For DISABLED members
+                # Update member account detector to enabled
+                detector_id = find_or_create_detector(
+                    boto_session, region_name)
+                client.update_detector(
+                    DetectorId=detector_id,
+                    Enable=True)
+            if account_id in get_members(
+                    'RESIGNED', 'REMOVED', 'INVITED',
+                    'EMAILVERIFICATIONINPROGRESS', 'EMAILVERIFICATIONFAILED'):
+                # Get or create a detector in the member account
+                detector_id = find_or_create_detector(
+                    boto_session, region_name)
+                if account_id in get_members(
+                        'RESIGNED', 'INVITED', 'EMAILVERIFICATIONINPROGRESS',
+                        'EMAILVERIFICATIONFAILED'):
+                    # For members with a pending invitation
+                    # Accept the invitation in the member account
+                    response = client.list_invitations()
+                    # This assumes that if the master things the member is
+                    # INVITED then the member will have a listed pending
+                    # invitation
+                    invitation_id = next(
+                        x['InvitationId'] for x in response['Invitations']
+                        if x['AccountId'] == local_account_id)
+                    client.accept_invitation(
+                        DetectorId=detector_id,
+                        InvitationId=invitation_id,
+                        MasterId=local_account_id)

@@ -5,8 +5,10 @@ from boto3.dynamodb.types import TypeDeserializer
 from boto3.dynamodb.transform import TransformationInjector
 
 logger = logging.getLogger(__name__)
-DYNAMODB_TABLE_NAME = 'cloudformation-stack-emissions'
-DB_CATEGORY = 'GuardDuty Multi Account Member Role'
+DYNAMODB_TABLE_NAME = os.environ.get(
+    'DYNAMODB_TABLE_NAME', 'cloudformation-stack-emissions')
+DB_CATEGORY = os.environ.get(
+    'DB_CATEGORY', 'GuardDuty Multi Account Member Role')
 
 
 class GetMembers:
@@ -143,6 +145,10 @@ def handle(event, context):
         * Get or create a detector in the member account
         * For members with a pending invitationaAccept the invitation in the
           member account
+
+    Set environment variables
+      * ORGANIZATION_IAM_ROLE_ARN : IAM Role ARN to assume to reach AWS
+        Organization parent account
 
     :param event: Lambda event object
     :param context: Lambda context object

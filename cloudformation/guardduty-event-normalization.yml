@@ -58,16 +58,41 @@ Resources:
               - "SqsOutput"
               - "Arn"
           Protocol: "sqs"
-  LambdaInvokePermission:
+  SqsQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: MyQueuePolicy
+        Statement:
+          - Sid: Allow-SendMessage-To-The-Queue-From-SNS-Topic
+            Effect: Allow
+            Principal: '*'
+            Action:
+              - sqs:SendMessage
+            Resource: '*'
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref SnsOutputTopic
+      Queues:
+        - !Ref SqsOutput
+  LambdaInvokePermission1:
     Type: AWS::Lambda::Permission
     Properties:
       Action: lambda:InvokeFunction
       Principal: events.amazonaws.com
       FunctionName: !GetAtt 'findingsToMozDef.Arn'
+  LambdaInvokePermission2:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      Principal: sns.amazonaws.com
+      FunctionName: !GetAtt 'findingsToMozDef.Arn'
   findingsToMozDef:
     Type: AWS::Lambda::Function
     Properties:
       Runtime: 'python3.6'
+      Timeout: '300'
       Handler: lambda_functions/normalization.handle
       Role: !GetAtt 'GuardDutyToMozDefRole.Arn'
       Code:

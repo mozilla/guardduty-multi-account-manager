@@ -37,6 +37,7 @@ Resources:
                   - guardduty:GetMasterAccount
                   - guardduty:UpdateDetector
                 Resource: '*'
+      Path: '/mutli-account-guard-duty/'
   PublishIAMRoleArnsToSNS:
     Type: Custom::PublishIAMRoleArnsToSNS
     Version: '1.0'

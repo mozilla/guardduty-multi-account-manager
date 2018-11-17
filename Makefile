@@ -38,6 +38,14 @@ upload-plumbing-lambda:
 	aws s3 cp lambda_functions/plumbing.zip s3://infosec-public-data/lambda/plumbing.zip --acl public-read
 	rm lambda_functions/plumbing.zip
 
+.PHONY: upload-accountlinker-lambda
+upload-accountlinker-lambda:
+	@export AWS_REGION=$(AWS_REGION)
+	zip lambda_functions/account_linker.zip lambda_functions/account_linker.py
+	aws s3 cp lambda_functions/account_linker.zip s3://infosec-public-data/lambda/account_linker.zip --acl public-read
+	rm lambda_functions/account_linker.zip
+
+
 .PHONY: upload-templates create-stack
 create-stack:
 	@export AWS_REGION=$(AWS_REGION)

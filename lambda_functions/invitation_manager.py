@@ -237,15 +237,18 @@ def handle(event, context):
 
         for account_id, email in organizations_account_id_map.items():
             boto_session = get_session(account_id_role_arn_map[account_id])
+            member_client = boto_session.client(
+                'guardduty', region_name=region_name)
             if account_id in get_members('DISABLED'):
                 # For DISABLED members
                 # Update member account detector to enabled
+
                 detector_id = find_or_create_detector(
                     boto_session, region_name)
                 logger.info(
                     '{} : {} : Updating member to re-enable detector'.format(
                         region_name, account_id))
-                client.update_detector(
+                member_client.update_detector(
                     DetectorId=detector_id,
                     Enable=True)
             if account_id in get_members(
@@ -259,7 +262,7 @@ def handle(event, context):
                         'EMAILVERIFICATIONFAILED'):
                     # For members with a pending invitation
                     # Accept the invitation in the member account
-                    response = client.list_invitations()
+                    response = member_client.list_invitations()
                     # This assumes that if the master things the member is
                     # INVITED then the member will have a listed pending
                     # invitation
@@ -269,7 +272,7 @@ def handle(event, context):
                     logger.info(
                         '{} : {} : Member accepting invite'.format(
                             region_name, account_id))
-                    client.accept_invitation(
+                    member_client.accept_invitation(
                         DetectorId=detector_id,
                         InvitationId=invitation_id,
                         MasterId=local_account_id)

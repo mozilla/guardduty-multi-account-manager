@@ -36,6 +36,7 @@ Resources:
                   - guardduty:GetInvitationsCount
                   - guardduty:GetMasterAccount
                   - guardduty:UpdateDetector
+                  - guardduty:ListInvitations
                 Resource: '*'
       Path: '/mutli-account-guard-duty/'
   PublishIAMRoleArnsToSNS:

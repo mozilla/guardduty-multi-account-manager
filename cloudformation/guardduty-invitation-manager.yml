@@ -1,2 +1,111 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager inviation manager lambda function to run in master account.
+Parameters:
+  AccountFilterList:
+    Type: String
+    Default: 656532927350
+    Description: Space delimited list of account IDs to filter on
+  OrganizationAccountArn:
+    Type: String
+    Default: arn:aws:iam::329567179436:role/Infosec-Organization-Reader
+    Description: ARN of an IAM Role to assume in order to query the AWS Organization parent if the Org parent is a different AWS account
+Mappings:
+  Variables:
+    DynamoDBTable:
+      Name: cloudformation-stack-emissions
+      Category: GuardDuty Multi Account Member Role
+Resources:
+  InvitationManagerIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: "AllowRoleAssumption"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: sts:AssumeRole
+                Resource: arn:aws:iam::*:role/mutli-account-guard-duty/*
+        - PolicyName: "AllowSTSGetCallerIdentity"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: sts:GetCallerIdentity
+                Resource: '*'
+        - PolicyName: "AllowLocalGuardDuty"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                - guardduty:CreateDetector
+                - guardduty:ListDetectors
+                Resource: '*'
+        - PolicyName: "AllowGuardDutyMasterManagement"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                - guardduty:GetMembers
+                - guardduty:CreateMembers
+                - guardduty:InviteMembers
+                Resource: '*'
+        - PolicyName: "AllowOrganizationListAccounts"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: organizations:ListAccounts
+                Resource: '*'
+        - PolicyName: "AllowScanDynamoDB"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: dynamodb:Scan
+                Resource: !Join [ '', [ 'arn:aws:dynamodb:*:', !Ref 'AWS::AccountId', ':table/', !FindInMap [ Variables, DynamoDBTable, Name ]]]
+  InvitationManagerFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.6
+      Timeout: 60
+      Handler: lambda_functions/invitation_manager.handle
+      Role: !GetAtt InvitationManagerIAMRole.Arn
+      Code:
+        S3Bucket: "infosec-public-data"
+        S3Key: "lambda/invitation_manager.zip"
+      Environment:
+        Variables:
+          ACCOUNT_FILTER_LIST: !Ref AccountFilterList
+          DYNAMODB_TABLE_NAME: !FindInMap [ Variables, DynamoDBTable, Name ]
+          DB_CATEGORY: !FindInMap [ Variables, DynamoDBTable, Category ]
+          ORGANIZATION_IAM_ROLE_ARN: !Ref OrganizationAccountArn
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: "Trigger GuardDuty Invitation Manager run thrice daily"
+      ScheduleExpression: "cron(14,19,24 11 * * ? *)"
+      State: "ENABLED"
+      Targets:
+        - Arn: !Ref InvitationManagerFunction
+          Id: "InvitationManager"
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Ref: InvitationManagerFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "events.amazonaws.com"
+      SourceArn: !GetAtt ScheduledRule.Arn

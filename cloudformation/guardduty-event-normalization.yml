@@ -92,7 +92,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Runtime: 'python3.6'
-      Timeout: '300'
+      Timeout: 300
       Handler: lambda_functions/normalization.handle
       Role: !GetAtt 'GuardDutyToMozDefRole.Arn'
       Code:
@@ -106,7 +106,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Runtime: 'python3.6'
-      Timeout: '300'
+      Timeout: 300
       Handler: lambda_functions/plumbing.handle
       Role: !GetAtt 'GuardDutyPlumbingRole.Arn'
       Code:

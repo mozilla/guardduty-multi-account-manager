@@ -28,28 +28,33 @@ upload-templates:
 upload-gd2md-lambda:
 	@export AWS_REGION=$(AWS_REGION)
 	zip lambda_functions/gd2md.zip lambda_functions/normalization.py
-	aws s3 cp lambda_functions/gd2md.zip s3://infosec-public-data/lambda/gd2md.zip --acl public-read
+	aws s3 cp lambda_functions/gd2md.zip s3://infosec-lambda-us-east-1/gd2md.zip --acl public-read
+	aws s3 cp lambda_functions/gd2md.zip s3://infosec-lambda-us-west-2/gd2md.zip --acl public-read
 	rm lambda_functions/gd2md.zip
 
 .PHONY: upload-plumbing-lambda
 upload-plumbing-lambda:
 	@export AWS_REGION=$(AWS_REGION)
 	zip lambda_functions/plumbing.zip lambda_functions/plumbing.py
-	aws s3 cp lambda_functions/plumbing.zip s3://infosec-public-data/lambda/plumbing.zip --acl public-read
+	aws s3 cp lambda_functions/plumbing.zip s3://infosec-lambda-us-east-1/plumbing.zip --acl public-read
+	aws s3 cp lambda_functions/plumbing.zip s3://infosec-lambda-us-west-2/plumbing.zip --acl public-read
 	rm lambda_functions/plumbing.zip
 
 .PHONY: upload-invitation_manager-lambda
 upload-invitation_manager-lambda:
 	@export AWS_REGION=$(AWS_REGION)
 	zip lambda_functions/invitation_manager.zip lambda_functions/invitation_manager.py
-	aws s3 cp lambda_functions/invitation_manager.zip s3://infosec-public-data/lambda/invitation_manager.zip --acl public-read
+	aws s3 cp lambda_functions/invitation_manager.zip s3://infosec-lambda-us-east-1/invitation_manager.zip --acl public-read
+	aws s3 cp lambda_functions/invitation_manager.zip s3://infosec-lambda-us-west-2/invitation_manager.zip --acl public-read
 	rm lambda_functions/invitation_manager.zip
 
 
 .PHONY: upload-templates create-stack
 create-stack:
 	@export AWS_REGION=$(AWS_REGION)
-	aws cloudformation create-stack --stack-name guardduty-multi-account-manager --template-url https://s3.amazonaws.com/infosec-public-data/cf/guardduty-multi-account-manager/guardduty-multi-account-manager-parent.yml
+	aws cloudformation create-stack --stack-name guardduty-multi-account-manager \
+	  --capabilities CAPABILITY_IAM \
+	  --template-url https://s3.amazonaws.com/infosec-public-data/cf/guardduty-multi-account-manager/guardduty-multi-account-manager-parent.yml
 
 .PHONY: upload-templates create-stack
 create-stackset-roles:

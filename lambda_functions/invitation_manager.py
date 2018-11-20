@@ -260,7 +260,7 @@ def handle(event, context):
         client = local_boto_session.client(
             'guardduty', region_name=region_name)
         response = client.get_members(
-            AccountIds=account_id_role_arn_map.keys(),
+            AccountIds=list(account_id_role_arn_map),
             DetectorId=local_detector_id)
         members = {x['AccountId']: x['RelationshipStatus']
                    for x in response['Members']}

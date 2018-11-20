@@ -225,8 +225,9 @@ def handle(event, context):
         account_details = [
             {'AccountId': account_id, 'Email': email}
             for account_id, email in organizations_account_id_map.items()
-            if account_id not in members
-            or account_id in get_members('REMOVED')]
+            if account_id in account_id_role_arn_map.keys() and
+               (account_id not in members
+                or account_id in get_members('REMOVED'))]
         if account_details:
             client.create_members(
                 AccountDetails=account_details,
@@ -245,7 +246,8 @@ def handle(event, context):
                 '{} : Member invited : {}'.format(
                     region_name, account_ids_to_invite))
 
-        for account_id, email in organizations_account_id_map.items():
+        for account_id in (set(organizations_account_id_map.keys())
+                           & set(account_id_role_arn_map.keys())):
             boto_session = get_session(account_id_role_arn_map[account_id])
             member_client = boto_session.client(
                 'guardduty', region_name=region_name)

@@ -31,11 +31,15 @@ Resources:
                 Action:
                   - guardduty:ListDetectors
                   - guardduty:CreateDetector
+                  - guardduty:DeleteDetector
                   - guardduty:AcceptInvitation
+                  - guardduty:DeleteInvitations
                   - guardduty:GetDetector
                   - guardduty:GetInvitationsCount
                   - guardduty:GetMasterAccount
                   - guardduty:UpdateDetector
+                  - guardduty:ListInvitations
+                  - guardduty:DisassociateFromMasterAccount
                 Resource: '*'
       Path: '/mutli-account-guard-duty/'
   PublishIAMRoleArnsToSNS:

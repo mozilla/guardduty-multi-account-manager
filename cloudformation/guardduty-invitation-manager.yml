@@ -94,7 +94,7 @@ Resources:
           DYNAMODB_TABLE_NAME: !FindInMap [ Variables, DynamoDBTable, Name ]
           DB_CATEGORY: !FindInMap [ Variables, DynamoDBTable, Category ]
           ORGANIZATION_IAM_ROLE_ARN: !Ref OrganizationAccountArn
-  ScheduledRule:
+  InvitationManagerScheduledRule:
     Type: AWS::Events::Rule
     Properties:
       Description: "Trigger GuardDuty Invitation Manager run thrice daily"

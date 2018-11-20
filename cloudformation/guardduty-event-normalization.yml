@@ -119,10 +119,10 @@ Resources:
       Environment:
         Variables:
           NORMALIZER_LAMBDA_FUNCTION: !GetAtt findingsToMozDef.Arn
-  ScheduledRule:
+  PlumbingScheduledRule:
     Type: AWS::Events::Rule
     Properties:
-      Description: "ScheduledRule"
+      Description: "Trigger GuardDuty plumbing once per hour"
       ScheduleExpression: "rate(1 hour)"
       State: "ENABLED"
       Targets:

@@ -141,8 +141,8 @@ Resources:
       Principal: "events.amazonaws.com"
       SourceArn:
         Fn::GetAtt:
-          - "ScheduledRule"
-          - "Arn"
+          - PlumbingScheduledRule
+          - Arn
 Outputs:
   NormalizationLambdaFunction:
     Description: The arn of the normalizer lambda.

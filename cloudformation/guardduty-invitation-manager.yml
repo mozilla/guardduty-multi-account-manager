@@ -37,7 +37,9 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action: sts:AssumeRole
-                Resource: arn:aws:iam::*:role/mutli-account-guard-duty/*
+                Resource:
+                  - arn:aws:iam::*:role/mutli-account-guard-duty/*
+                  - !Ref OrganizationAccountArn
         - PolicyName: "AllowSTSGetCallerIdentity"
           PolicyDocument:
             Version: "2012-10-17"
@@ -110,4 +112,4 @@ Resources:
         Ref: InvitationManagerFunction
       Action: "lambda:InvokeFunction"
       Principal: "events.amazonaws.com"
-      SourceArn: !GetAtt ScheduledRule.Arn
+      SourceArn: !GetAtt InvitationManagerScheduledRule.Arn

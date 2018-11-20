@@ -49,7 +49,9 @@ upload-invitation_manager-lambda:
 .PHONY: upload-templates create-stack
 create-stack:
 	@export AWS_REGION=$(AWS_REGION)
-	aws cloudformation create-stack --stack-name guardduty-multi-account-manager --template-url https://s3.amazonaws.com/infosec-public-data/cf/guardduty-multi-account-manager/guardduty-multi-account-manager-parent.yml
+	aws cloudformation create-stack --stack-name guardduty-multi-account-manager \
+	  --capabilities CAPABILITY_IAM \
+	  --template-url https://s3.amazonaws.com/infosec-public-data/cf/guardduty-multi-account-manager/guardduty-multi-account-manager-parent.yml
 
 .PHONY: upload-templates create-stack
 create-stackset-roles:

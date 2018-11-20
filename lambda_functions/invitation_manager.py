@@ -4,6 +4,12 @@ import os
 from boto3.dynamodb.types import TypeDeserializer
 from boto3.dynamodb.transform import TransformationInjector
 
+root = logging.getLogger()
+if root.handlers:
+    for handler in root.handlers:
+        root.removeHandler(handler)
+
+
 logging.basicConfig(
     level=logging.DEBUG,
     handlers=[logging.StreamHandler()]
@@ -121,7 +127,7 @@ def get_account_id_email_map_from_organizations(boto_session, region_name):
     client = boto_session.client('organizations', region_name=region_name)
     paginator = client.get_paginator('list_accounts')
     accounts = []
-    map(accounts.extend, [x['Accounts'] for x in paginator.paginate()])
+    list(map(accounts.extend, [x['Accounts'] for x in paginator.paginate()]))
     account_map = {x['Id']: x['Email'] for x in accounts}
     return account_map
 

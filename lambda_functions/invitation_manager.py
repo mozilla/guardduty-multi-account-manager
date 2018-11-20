@@ -11,7 +11,7 @@ if root.handlers:
 
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     handlers=[logging.StreamHandler()]
 )
 logger = logging.getLogger(__name__)

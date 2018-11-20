@@ -1,5 +1,9 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager formerly known as guardDuty2MozDef subscribes to gd cloudwatch events and outputs MozDef format message in an SQS queue.
+Mappings:
+  Variables:
+    Lambda:
+      BucketNamePrefix: infosec-lambda
 Resources:
   GuardDutyToMozDefRole:
     Type: AWS::IAM::Role
@@ -96,8 +100,8 @@ Resources:
       Handler: lambda_functions/normalization.handle
       Role: !GetAtt 'GuardDutyToMozDefRole.Arn'
       Code:
-        S3Bucket: "infosec-public-data"
-        S3Key: "lambda/gd2md.zip"
+        S3Bucket: !Join [ '-', [ !FindInMap [ Variables, Lambda, BucketNamePrefix ], !Ref 'AWS::Region' ]]
+        S3Key: "gd2md.zip"
       Environment:
         Variables:
           minSeverityLevel: 'LOW'
@@ -110,8 +114,8 @@ Resources:
       Handler: lambda_functions/plumbing.handle
       Role: !GetAtt 'GuardDutyPlumbingRole.Arn'
       Code:
-        S3Bucket: "infosec-public-data"
-        S3Key: "lambda/plumbing.zip"
+        S3Bucket:  !Join [ '-', [ !FindInMap [ Variables, Lambda, BucketNamePrefix ], !Ref 'AWS::Region' ]]
+        S3Key: "plumbing.zip"
       Environment:
         Variables:
           NORMALIZER_LAMBDA_FUNCTION: !GetAtt findingsToMozDef.Arn

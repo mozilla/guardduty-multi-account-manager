@@ -99,7 +99,7 @@ Resources:
       ScheduleExpression: "cron(14,19,24 11 * * ? *)"
       State: "ENABLED"
       Targets:
-        - Arn: !Ref InvitationManagerFunction
+        - Arn: !GetAtt InvitationManagerFunction.Arn
           Id: "InvitationManager"
   PermissionForEventsToInvokeLambda:
     Type: AWS::Lambda::Permission

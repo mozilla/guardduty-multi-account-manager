@@ -150,6 +150,54 @@ def get_account_role_map(boto_session, region_name):
                   'GuardDutyMemberAccountIAMRoleArn'} <= set(x)}
 
 
+def tear_down_members(account_ids):
+    local_boto_session = get_session(os.environ.get('MANAGER_IAM_ROLE_ARN'))
+    local_account_id = boto3.client('sts').get_caller_identity()["Account"]
+    guardduty_regions = local_boto_session.get_available_regions('guardduty')
+    account_id_role_arn_map = get_account_role_map(
+        local_boto_session, 'us-west-2')
+    for region_name in guardduty_regions:
+        detector_id = get_all_detectors(local_boto_session, region_name)['DetectorIds'][0]
+        client = local_boto_session.client(
+            'guardduty', region_name=region_name)
+        response = client.delete_members(
+            AccountIds=account_ids,
+            DetectorId=detector_id
+        )
+        logger.info('{}: Deleted member {} from master detector {}'.format(
+                region_name, account_ids, detector_id))
+
+        for account_id in account_ids:
+            member_boto_session = get_session(account_id_role_arn_map[account_id])
+            member_client = member_boto_session.client(
+                'guardduty', region_name=region_name)
+            for member_detector_id in get_all_detectors(
+                    member_boto_session, region_name)['DetectorIds']:
+                try:
+                    response = member_client.disassociate_from_master_account(
+                        DetectorId=member_detector_id
+                    )
+                    logger.info('{}: {} : Dissasociated member dector id {} from master'.format(
+                        region_name, account_id, member_detector_id))
+                except:
+                    pass
+                try:
+                    response = member_client.delete_detector(
+                        DetectorId=member_detector_id
+                    )
+                    logger.info(
+                        '{}: {} : Deleted member dector id {}'.format(
+                            region_name, account_id, member_detector_id))
+                except:
+                    pass
+            response = member_client.delete_invitations(
+                AccountIds=[local_account_id])
+            logger.info(
+                '{}: {} : Inivitation from {} deleted'.format(
+                    region_name, account_id, local_account_id))
+
+
+
 def handle(event, context):
     """Move all AWS accounts in an AWS Organization which have delegated
     permissions to this account towards a functioning member master

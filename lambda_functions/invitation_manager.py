@@ -86,7 +86,8 @@ def create_detector(boto_session, region_name, account_id=''):
     gd = boto_session.client('guardduty', region_name=region_name)
     response = gd.create_detector(
         Enable=True,
-        FindingPublishingFrequency='FIFTEEN_MINUTES'
+        # FindingPublishingFrequency='FIFTEEN_MINUTES'  # We need a newer version of boto3 to support this argument
+        # https://github.com/boto/botocore/commit/31f3dfd37a89b018f818807d9977d6d4e5090467
     )
     logger.info(
         '{} : {} : Created detector {}'.format(

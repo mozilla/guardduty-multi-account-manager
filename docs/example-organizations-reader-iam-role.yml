@@ -1,0 +1,39 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: IAM Role that grants permission to read AWS Organizations
+  AWS Organization information
+Mappings:
+  VariablesMap:
+    TrustedAccount:
+      ExternalAccountId: '123456789012'
+      RoleName: Organization-Reader
+Resources:
+  IAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !FindInMap [ VariablesMap, TrustedAccount, RoleName]
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action: sts:AssumeRole
+            Principal:
+              AWS: !Join [ ':', [ 'arn:aws:iam:', !FindInMap [ VariablesMap, TrustedAccount, ExternalAccountId], root]]
+              Service: lambda.amazonaws.com
+  IAMPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Policy granting AWS Organization read permissions
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - organizations:Describe*
+              - organizations:List*
+            Resource: '*'
+      Roles:
+        - !Ref 'IAMRole'
+Outputs:
+  AssumeRoleArn:
+    Value: !GetAtt 'IAMRole.Arn'
+    Description: The ARN of the IAM Role

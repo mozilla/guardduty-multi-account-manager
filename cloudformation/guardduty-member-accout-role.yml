@@ -2,15 +2,31 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager member account roles to allow guardDuty master to accept invitations.
 Metadata:
   Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
+  'AWS::CloudFormation::Interface':
+    ParameterGroups:
+    - Label:
+        default: "Configuration"
+      Parameters:
+      - MasterAccountPrincipal
+      - SNSArnForPublishingIAMRoleArn
+    ParameterLabels:
+      MasterAccountPrincipal:
+        default: Master Account IAM Principal
+      SNSArnForPublishingIAMRoleArn:
+        default: SNS Topic ARN to publish outputs to
 Parameters:
   MasterAccountPrincipal:
     Type: String
-    Default: arn:aws:iam::371522382791:root
-    Description: The ARN of the AWS account of the GuardDuty master
+    # Default: arn:aws:iam::123456789012:root
+    AllowedPattern: '^arn:aws:iam::(?!123456789012)[0-9]*:root$'
+    ConstraintDescription: A root AWS account principal (other than arn:aws:iam::123456789012:root)
+    Description: 'The ARN of the AWS account of the GuardDuty master (Example : arn:aws:iam::123456789012:root)'
   SNSArnForPublishingIAMRoleArn:
     Type: String
-    Default: arn:aws:sns:us-west-2:371522382791:cloudformation-stack-emissions
-    Description: The ARN of the SNS Topic to publish an event to with the new IAM Role ARN of the GuardDuty Invitation Acceptor
+    # Default: arn:aws:sns:us-west-2:123456789012:cloudformation-stack-emissions
+    AllowedPattern: '^arn:aws:sns:[^:]*:(?!123456789012)[0-9]*:.*$'
+    ConstraintDescription: An SNS Topic ARN (other than arn:aws:sns:us-west-2:123456789012:cloudformation-stack-emissions)
+    Description: 'The ARN of the SNS Topic to publish an event to with the new IAM Role ARN of the GuardDuty Invitation Acceptor (Example: arn:aws:sns:us-west-2:123456789012:cloudformation-stack-emissions)'
 Resources:
   GuardDutyInvitationAcceptorIAMRole:
     Type: AWS::IAM::Role

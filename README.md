@@ -73,13 +73,16 @@ __Dependencies__
 
 ### Onboarding Accounts
 
-1. Ensure that the `SNSTopicARN` default parameter in your
+1. Ensure that the both default parameters are configured in the
    [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
-   template is set to the `SNSArnForPublishingIAMRoleArn` value output from the
-   earlier deployed
-   [Cloudformation Cross Account Outputs CloudFormation template]((https://github.com/mozilla/cloudformation-cross-account-outputs/cloudformation-sns-emission-consumer.yml))
+   template
+   * `SNSArnForPublishingIAMRoleArn` default parameter should be set to the `SNSArnForPublishingIAMRoleArn` value output from the
+     earlier deployed
+     [Cloudformation Cross Account Outputs CloudFormation template]((https://github.com/mozilla/cloudformation-cross-account-outputs/cloudformation-sns-emission-consumer.yml))
+   * `MasterAccountPrincipal` default parameter should be set to the root principal
+     of the AWS account running the GuardDuty master (e.g. `arn:aws:iam::123456789012:root`)
 2. Deploy the [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
-   CloudFormation template in your member AWS account. The account will then
+   CloudFormation template in your member AWS accounts. The account will then
    register with the master account and go through the invitation process 
    automatically for every region.
 

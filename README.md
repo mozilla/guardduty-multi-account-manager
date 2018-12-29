@@ -53,15 +53,26 @@ __Dependencies__
   service which allows CloudFormation stacks in other AWS accounts to report
   back output. This is used to convey the
   [GuardDuty Member Account IAM Role](cloudformation/guardduty-member-account-role.yml)
-  information. Simply deploy the
-  [CloudFormation template]((https://github.com/mozilla/cloudformation-cross-account-outputs/cloudformation-sns-emission-consumer.yml))
-  to enable it. The stack will output a `SNSTopicARN` which is the SNS Topic
-  ARN to configure as the default `SNSArnForPublishingIAMRoleArn` parameter in your
-  [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml).
-  Before distributing `guardduty-member-account-role.yml` to your intended
-  GuardDuty member account owners, set the `SNSArnForPublishingIAMRoleArn` default
-  to the value from the deployed `cloudformation-cross-account-outputs` stack's
-  `SNSTopicARN` output.
+  information. In order to deploy this service 
+  [follow the instructions in the README](https://github.com/mozilla/cloudformation-cross-account-outputs#deploy-the-infrastructure)
+  which explains it. Make sure that in Step 3, you deploy the `cloudformation-sns-emission-consumer.yml`
+  in every region that you want to allow your GuardDuty members to potentially
+  deploy the GuardDuty member role in. For example, in the included 
+  [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
+  it assumes that you'll have deployed `cloudformation-sns-emission-consumer.yml`
+  in both `us-west-2` and `us-east-1`
+* Customize the 
+  [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
+  CloudFormation template which you'll distribute to your members. You need to
+  set two values in the `Mappings` section of the template
+  * `MasterAccount`:`Principal` : Set this to the 
+    [root principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html#Principal_specifying)
+    of your AWS account in which you're running the GuardDuty master. For
+    example something like `arn:aws:iam::123456789012:root`
+  * `SNSTopicForPublishingIAMRoleArn`:`Account` : Set this to the 
+    [AWS Account ID](https://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html#FindingYourAccountIdentifiers)
+    of the AWS account that you've deployed the  [Cloudformation Cross Account Outputs](https://github.com/mozilla/cloudformation-cross-account-outputs/)
+    service in. For example `123456789012`
 
 ## Getting Started
 
@@ -73,15 +84,10 @@ __Dependencies__
 
 ### Onboarding Accounts
 
-1. Ensure that the both default parameters are configured in the
+1. Ensure that the the mappings are configured in the
    [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
-   template
-   * `SNSArnForPublishingIAMRoleArn` default parameter should be set to the `SNSArnForPublishingIAMRoleArn` value output from the
-     earlier deployed
-     [Cloudformation Cross Account Outputs CloudFormation template]((https://github.com/mozilla/cloudformation-cross-account-outputs/cloudformation-sns-emission-consumer.yml))
-   * `MasterAccountPrincipal` default parameter should be set to the root principal
-     of the AWS account running the GuardDuty master (e.g. `arn:aws:iam::123456789012:root`)
-2. Deploy the [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
+   template as described above
+2. Deploy the customized [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
    CloudFormation template in your member AWS accounts. The account will then
    register with the master account and go through the invitation process 
    automatically for every region.

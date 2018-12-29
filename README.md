@@ -1,6 +1,6 @@
 # GuardDuty Multi-Account Manager
-A reusable implementation Mozilla's use of GuardDuty multi account
-setup with event normalization.
+A reusable implementation Mozilla's use of GuardDuty multi account setup with
+event normalization.
 
 ## Architecture
 
@@ -40,7 +40,7 @@ the following:
 
 ## How do I deploy it?
 
-__Dependencies__
+### Dependencies
 
 * AWS Organizations
   * Either run the GuardDuty Multi-Account Manager from within an AWS
@@ -55,26 +55,31 @@ __Dependencies__
   [GuardDuty Member Account IAM Role](cloudformation/guardduty-member-account-role.yml)
   information. In order to deploy this service 
   [follow the instructions in the README](https://github.com/mozilla/cloudformation-cross-account-outputs#deploy-the-infrastructure)
-  which explains it. Make sure that in Step 3, you deploy the `cloudformation-sns-emission-consumer.yml`
+  which explains how. Make sure that in Step 3, you deploy the `cloudformation-sns-emission-consumer.yml`
   in every region that you want to allow your GuardDuty members to potentially
   deploy the GuardDuty member role in. For example, in the included 
-  [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
+  [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml),
   it assumes that you'll have deployed `cloudformation-sns-emission-consumer.yml`
   in both `us-west-2` and `us-east-1`
 * Customize the 
   [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
-  CloudFormation template which you'll distribute to your members. You need to
-  set two values in the `Mappings` section of the template
-  * `MasterAccount`:`Principal` : Set this to the 
-    [root principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html#Principal_specifying)
-    of your AWS account in which you're running the GuardDuty master. For
-    example something like `arn:aws:iam::123456789012:root`
-  * `SNSTopicForPublishingIAMRoleArn`:`Account` : Set this to the 
-    [AWS Account ID](https://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html#FindingYourAccountIdentifiers)
-    of the AWS account that you've deployed the  [Cloudformation Cross Account Outputs](https://github.com/mozilla/cloudformation-cross-account-outputs/)
-    service in. For example `123456789012`
-
-## Getting Started
+  CloudFormation template which you'll distribute to your members. 
+  * You need to set two values in the `Mappings` section of the template
+    * `MasterAccount`:`Principal` : Set this to the 
+      [root principal](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_elements_principal.html#Principal_specifying)
+      of your AWS account in which you're running the GuardDuty master. For
+      example `arn:aws:iam::123456789012:root`
+    * `SNSTopicForPublishingIAMRoleArn`:`Account` : Set this to the 
+      [AWS Account ID](https://docs.aws.amazon.com/general/latest/gr/acct-identifiers.html#FindingYourAccountIdentifiers)
+      of the AWS account that you've deployed the 
+      [Cloudformation Cross Account Outputs](https://github.com/mozilla/cloudformation-cross-account-outputs/)
+      service in. For example `123456789012`.
+  * Add any additional regions that you wish to support (which you've deployed 
+    Cloudformation Cross Account Outputs in) into the 
+    `TheRegionYouAreDeployingIn` mapping following the example of the existing
+    two regions listed there already.
+  
+### Getting Started
 
 * Deploy the Cloudformation Stack from
   `cloudformation/guardduty-multi-account-manager-parent.yml` in the master

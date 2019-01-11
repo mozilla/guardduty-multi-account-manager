@@ -84,7 +84,7 @@ the following:
 ### Getting Started
 
 * Deploy the Cloudformation Stack from
-  `cloudformation/guardduty-multi-account-manager-parent.yml` in the master
+  [`cloudformation/guardduty-multi-account-manager-parent.yml`](https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/guardduty-multi-account-manager-parent.yml) in the master
   account. [![Launch GuardDuty Multi Account Manager](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=guardduty-multi-account-manager&templateURL=https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/guardduty-multi-account-manager-parent.yml)
 
 * The stack will spin up and create all Master Detectors in all regions, a

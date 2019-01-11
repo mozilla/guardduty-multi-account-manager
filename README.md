@@ -100,6 +100,11 @@ the following:
    register with the master account and go through the invitation process 
    automatically for every region.
 
+## AWS re:invent 2018 SEC403 Presentation
+
+* [Watch our presentation on GuardDuty Multi Account Manager](https://www.youtube.com/watch?v=M5yQpegaYF8&t=1889) at AWS re:Invent 2018
+* [Read the slides](https://www.slideshare.net/AmazonWebServices/five-new-security-automations-using-aws-security-services-open-source-sec403-aws-reinvent-2018/47)
+
 ## License
 
 guardduty-multi-account-manager is Licensed under the

@@ -55,8 +55,3 @@ create-stack:
 	aws cloudformation create-stack --stack-name guardduty-multi-account-manager \
 	  --capabilities CAPABILITY_IAM \
 	  --template-url https://s3.amazonaws.com/infosec-public-data/cf/guardduty-multi-account-manager/guardduty-multi-account-manager-parent.yml
-
-.PHONY: upload-templates create-stack
-create-stackset-roles:
-	@export AWS_REGION=$(AWS_REGION)
-	aws cloudformation create-stack --stack-name stackset-administrative-roles --template-url https://s3.amazonaws.com/cloudformation-stackset-sample-templates-us-east-1/AWSCloudFormationStackSetAdministrationRole.yml

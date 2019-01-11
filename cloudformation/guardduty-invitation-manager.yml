@@ -1,21 +1,51 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager inviation manager lambda function to run in master account.
+Metadata:
+  Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
 Parameters:
   AccountFilterList:
     Type: String
-    Default: 656532927350
-    Description: Space delimited list of account IDs to filter on
+    Default: ''
+    # Default: 656532927350
+    Description: Space delimited list of account IDs to filter on. Leave this empty to process all accounts
   OrganizationAccountArn:
     Type: String
-    Default: arn:aws:iam::329567179436:role/Infosec-Organization-Reader
-    Description: ARN of an IAM Role to assume in order to query the AWS Organization parent if the Org parent is a different AWS account
+    Default: ''
+    # Default: arn:aws:iam::329567179436:role/Infosec-Organization-Reader
+    Description: >
+      ARN of an IAM Role to assume in order to query the AWS Organization parent
+      if the Org parent is a different AWS account. Leave this empty if you are
+      deploying within the AWS Organization parent account
+  LambdaCodeS3BucketNamePrefix:
+    Type: String
+    Default: public.
+    Description: >
+      A prefix string describing the S3 bucket name in each region containing
+      the gd2md.zip and plumbing.zip Lambda code. This parameter is appended with
+      the region name. For example my-bucket- would be turned into
+      my-bucket-us-west-2 for us-west-2. Set this to blank if your bucket name
+      has no prefix.
+  LambdaCodeS3BucketNameSuffix:
+    Type: String
+    Default: .infosec.mozilla.org
+    Description: >
+      A suffix string describing the S3 bucket name in each region containing
+      the gd2md.zip and plumbing.zip Lambda code. This parameter is prepended with
+      the region name. For example -my-bucket would be turned into
+      us-west-2-my-bucket for us-west-2. Set this to blank if your bucket name
+      has no suffix
+  LambdaCodeS3Path:
+    Type: String
+    Default: guardduty-multi-account-manager/lambda/
+    Description: >
+      The path in the S3 bucket containing the Lambda code.
+    AllowedPattern: '.*\/$'
+    ConstraintDescription: A path ending in the / character
 Mappings:
   Variables:
     DynamoDBTable:
       Name: cloudformation-stack-emissions
       Category: GuardDuty Multi Account Member Role
-    Lambda:
-      BucketNamePrefix: infosec-lambda
 Resources:
   InvitationManagerIAMRole:
     Type: AWS::IAM::Role
@@ -88,8 +118,8 @@ Resources:
       Handler: lambda_functions/invitation_manager.handle
       Role: !GetAtt InvitationManagerIAMRole.Arn
       Code:
-        S3Bucket: !Join [ '-', [ !FindInMap [ Variables, Lambda, BucketNamePrefix ], !Ref 'AWS::Region' ]]
-        S3Key: "invitation_manager.zip"
+        S3Bucket: !Join [ '', [ !Ref LambdaCodeS3BucketNamePrefix, !Ref 'AWS::Region', !Ref LambdaCodeS3BucketNameSuffix ] ]
+        S3Key: !Join [ '', [ !Ref LambdaCodeS3Path, "invitation_manager.zip" ] ]
       Environment:
         Variables:
           ACCOUNT_FILTER_LIST: !Ref AccountFilterList

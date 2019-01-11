@@ -5,11 +5,13 @@ Metadata:
 Mappings:
   Variables:
     MasterAccount:
-      # Make sure to set this Principal variable to the account running your GuardDuty master
-      # Principal: arn:aws:iam::123456789012:root
+      # Make sure to set this Principal variable to the account running your
+      # GuardDuty master. Leaving it as the default will cause stack failure
+      # as this example value is an invalid reserved principal
+      Principal: arn:aws:iam::123456789012:root
     SNSTopicForPublishingIAMRoleArn:
       # Make sure to set this Account variable to the account ID running your CloudFormation Cross Account Output infrastructure
-      # Account: 123456789012
+      Account: 123456789012
       Topic: cloudformation-stack-emissions
   TheRegionYouAreDeployingIn:
     # Create a record for each region in which CloudFormation Cross Account Output infrastructure is deployed

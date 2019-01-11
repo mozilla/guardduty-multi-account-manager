@@ -13,11 +13,10 @@ all:
 test:
 	py.test tests/ --capture=no
 
-# --ignore-checks=E2502 : https://github.com/awslabs/cfn-python-lint/issues/408
-.PHONY: cflint test
-test: cflint
-cflint: ## Verify the CloudFormation template pass linting tests
-	-cfn-lint --ignore-checks=E2502 cloudformation/*.yml
+.PHONY: cfn-lint test
+test: cfn-lint
+cfn-lint: ## Verify the CloudFormation template pass linting tests
+	-cfn-lint cloudformation/*.yml
 
 .PHONY: upload-templates
 upload-templates:

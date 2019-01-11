@@ -1,9 +1,33 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager formerly known as guardDuty2MozDef subscribes to gd cloudwatch events and outputs MozDef format message in an SQS queue.
-Mappings:
-  Variables:
-    Lambda:
-      BucketNamePrefix: infosec-lambda
+Metadata:
+  Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
+Parameters:
+  LambdaCodeS3BucketNamePrefix:
+    Type: String
+    Default: public.
+    Description: >
+      A prefix string describing the S3 bucket name in each region containing
+      the gd2md.zip and plumbing.zip Lambda code. This parameter is appended with
+      the region name. For example my-bucket- would be turned into
+      my-bucket-us-west-2 for us-west-2. Set this to blank if your bucket name
+      has no prefix.
+  LambdaCodeS3BucketNameSuffix:
+    Type: String
+    Default: .infosec.mozilla.org
+    Description: >
+      A suffix string describing the S3 bucket name in each region containing
+      the gd2md.zip and plumbing.zip Lambda code. This parameter is prepended with
+      the region name. For example -my-bucket would be turned into
+      us-west-2-my-bucket for us-west-2. Set this to blank if your bucket name
+      has no suffix
+  LambdaCodeS3Path:
+    Type: String
+    Default: guardduty-multi-account-manager/lambda/
+    Description: >
+      The path in the S3 bucket containing the Lambda code.
+    AllowedPattern: '.*\/$'
+    ConstraintDescription: A path ending in the / character
 Resources:
   GuardDutyToMozDefRole:
     Type: AWS::IAM::Role
@@ -100,8 +124,8 @@ Resources:
       Handler: lambda_functions/normalization.handle
       Role: !GetAtt 'GuardDutyToMozDefRole.Arn'
       Code:
-        S3Bucket: !Join [ '-', [ !FindInMap [ Variables, Lambda, BucketNamePrefix ], !Ref 'AWS::Region' ]]
-        S3Key: "gd2md.zip"
+        S3Bucket: !Join [ '', [ !Ref LambdaCodeS3BucketNamePrefix, !Ref 'AWS::Region', !Ref LambdaCodeS3BucketNameSuffix ] ]
+        S3Key: !Join [ '', [ !Ref LambdaCodeS3Path, "gd2md.zip" ] ]
       Environment:
         Variables:
           minSeverityLevel: 'LOW'
@@ -114,8 +138,8 @@ Resources:
       Handler: lambda_functions/plumbing.handle
       Role: !GetAtt 'GuardDutyPlumbingRole.Arn'
       Code:
-        S3Bucket:  !Join [ '-', [ !FindInMap [ Variables, Lambda, BucketNamePrefix ], !Ref 'AWS::Region' ]]
-        S3Key: "plumbing.zip"
+        S3Bucket: !Join [ '', [ !Ref LambdaCodeS3BucketNamePrefix, !Ref 'AWS::Region', !Ref LambdaCodeS3BucketNameSuffix ] ]
+        S3Key: !Join [ '', [ !Ref LambdaCodeS3Path, "plumbing.zip" ] ]
       Environment:
         Variables:
           NORMALIZER_LAMBDA_FUNCTION: !GetAtt findingsToMozDef.Arn

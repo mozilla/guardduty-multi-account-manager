@@ -2,31 +2,27 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager member account roles to allow guardDuty master to accept invitations.
 Metadata:
   Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
-  'AWS::CloudFormation::Interface':
-    ParameterGroups:
-    - Label:
-        default: "Configuration"
-      Parameters:
-      - MasterAccountPrincipal
-      - SNSArnForPublishingIAMRoleArn
-    ParameterLabels:
-      MasterAccountPrincipal:
-        default: Master Account IAM Principal
-      SNSArnForPublishingIAMRoleArn:
-        default: SNS Topic ARN to publish outputs to
-Parameters:
-  MasterAccountPrincipal:
-    Type: String
-    # Default: arn:aws:iam::123456789012:root
-    AllowedPattern: '^arn:aws:iam::(?!123456789012)[0-9]*:root$'
-    ConstraintDescription: A root AWS account principal (other than arn:aws:iam::123456789012:root)
-    Description: 'The ARN of the AWS account of the GuardDuty master (Example : arn:aws:iam::123456789012:root)'
-  SNSArnForPublishingIAMRoleArn:
-    Type: String
-    # Default: arn:aws:sns:us-west-2:123456789012:cloudformation-stack-emissions
-    AllowedPattern: '^arn:aws:sns:[^:]*:(?!123456789012)[0-9]*:.*$'
-    ConstraintDescription: An SNS Topic ARN (other than arn:aws:sns:us-west-2:123456789012:cloudformation-stack-emissions)
-    Description: 'The ARN of the SNS Topic to publish an event to with the new IAM Role ARN of the GuardDuty Invitation Acceptor (Example: arn:aws:sns:us-west-2:123456789012:cloudformation-stack-emissions)'
+Mappings:
+  Variables:
+    MasterAccount:
+      # Make sure to set this Principal variable to the account running your
+      # GuardDuty master. Leaving it as the default will cause stack failure
+      # as this example value is an invalid reserved principal
+      Principal: arn:aws:iam::123456789012:root
+    SNSTopicForPublishingIAMRoleArn:
+      # Make sure to set this Account variable to the account ID running your CloudFormation Cross Account Output infrastructure
+      Account: 123456789012
+      Topic: cloudformation-stack-emissions
+  TheRegionYouAreDeployingIn:
+    # Create a record for each region in which CloudFormation Cross Account Output infrastructure is deployed
+    us-east-1:
+      WhatIsThisMapping: This constrains the regions in which you can deploy this template to only the regions listed in this mapping. This, for example, prevents deloying in ap-south-1
+      IsNotSupportedPleaseUseADifferentRegion: True
+    us-west-2:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+Conditions:
+  RunningInAllowedRegion: !Equals [ !FindInMap [ TheRegionYouAreDeployingIn, !Ref 'AWS::Region', IsNotSupportedPleaseUseADifferentRegion ] , True ]
 Resources:
   GuardDutyInvitationAcceptorIAMRole:
     Type: AWS::IAM::Role
@@ -36,7 +32,7 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !Ref MasterAccountPrincipal
+              AWS: !FindInMap [ Variables, MasterAccount, Principal ]
             Action: sts:AssumeRole
       Policies:
         - PolicyName: AllowAcceptingGuardDutyInvitation
@@ -62,9 +58,8 @@ Resources:
     Type: Custom::PublishIAMRoleArnsToSNS
     Version: '1.0'
     Properties:
-      ServiceToken: !Ref SNSArnForPublishingIAMRoleArn
+      ServiceToken: !Join [ ':', [ 'arn:aws:sns', !Ref 'AWS::Region', !FindInMap [ Variables, SNSTopicForPublishingIAMRoleArn, Account ], !FindInMap [ Variables, SNSTopicForPublishingIAMRoleArn, Topic ] ] ]
       category: GuardDuty Multi Account Member Role
-      GuardDutyMemberAccountId: !Ref AWS::AccountId
       GuardDutyMemberAccountIAMRoleArn: !GetAtt GuardDutyInvitationAcceptorIAMRole.Arn
       GuardDutyMemberAccountIAMRoleName: !Ref GuardDutyInvitationAcceptorIAMRole
   CloudFormationLambdaIAMRole:
@@ -92,7 +87,6 @@ Resources:
                 Resource: '*'
   CreateGuardDutyServiceLinkedRoleFunction:
     Type: AWS::Lambda::Function
-    DependsOn: CloudFormationLambdaIAMRole
     Properties:
       Code:
         ZipFile: |

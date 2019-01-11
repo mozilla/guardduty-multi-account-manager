@@ -85,7 +85,6 @@ Resources:
                 Resource: '*'
   CreateGuardDutyServiceLinkedRoleFunction:
     Type: AWS::Lambda::Function
-    DependsOn: CloudFormationLambdaIAMRole
     Properties:
       Code:
         ZipFile: |

@@ -1,6 +1,8 @@
 # GuardDuty Multi-Account Manager
-A reusable implementation Mozilla's use of GuardDuty multi account setup with
-event normalization.
+
+Automate the AWS GuardDuty account invitation lifecycle for all of your 
+organizations AWS accounts in all regions as well as aggregate and normalize 
+the GuardDuty findings
 
 ## Architecture
 

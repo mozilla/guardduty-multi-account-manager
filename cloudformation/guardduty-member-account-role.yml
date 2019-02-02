@@ -53,7 +53,7 @@ Resources:
                   - guardduty:ListInvitations
                   - guardduty:DisassociateFromMasterAccount
                 Resource: '*'
-      Path: '/mutli-account-guard-duty/'
+      Path: '/multi-account-guard-duty/'
   PublishIAMRoleArnsToSNS:
     Type: Custom::PublishIAMRoleArnsToSNS
     Version: '1.0'

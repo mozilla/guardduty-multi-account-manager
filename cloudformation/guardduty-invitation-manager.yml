@@ -68,6 +68,7 @@ Resources:
               - Effect: "Allow"
                 Action: sts:AssumeRole
                 Resource:
+                  - arn:aws:iam::*:role/multi-account-guard-duty/*
                   - arn:aws:iam::*:role/mutli-account-guard-duty/*
                   - !Ref OrganizationAccountArn
         - PolicyName: "AllowSTSGetCallerIdentity"

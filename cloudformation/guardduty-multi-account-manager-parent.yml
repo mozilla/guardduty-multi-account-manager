@@ -8,14 +8,13 @@ Parameters:
     Default: ''
     # Default: 656532927350
     Description: Space delimited list of account IDs to filter on. Leave this empty to process all accounts
-  OrganizationAccountArn:
+  OrganizationAccountArns:
     Type: String
     Default: ''
-    # Default: arn:aws:iam::329567179436:role/Infosec-Organization-Reader
     Description: >
-      ARN of an IAM Role to assume in order to query the AWS Organization parent
-      if the Org parent is a different AWS account. Leave this empty if you are
-      deploying within the AWS Organization parent account
+      ARNs of IAM Roles to assume in order to query the AWS Organization parents
+      if the Org parents are different AWS accounts. Leave this empty if you are
+      deploying within a single AWS Organization parent account
 Mappings:
   Variables:
     CloudFormationTemplate:
@@ -37,7 +36,7 @@ Resources:
         LambdaCodeS3BucketNameSuffix: !FindInMap [ Variables, LambdaCode, BucketNameSuffix ]
         LambdaCodeS3Path: !FindInMap [ Variables, LambdaCode, DirectoryPath ]
         AccountFilterList: !Ref AccountFilterList
-        OrganizationAccountArn: !Ref OrganizationAccountArn
+        OrganizationAccountArns: !Ref OrganizationAccountArns
   GuardDutyEventNormalization:
     Type: AWS::CloudFormation::Stack
     Properties:

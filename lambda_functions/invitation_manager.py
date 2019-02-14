@@ -23,7 +23,8 @@ DYNAMODB_TABLE_NAME = os.environ.get(
     'DYNAMODB_TABLE_NAME', 'cloudformation-stack-emissions')
 DB_CATEGORY = os.environ.get(
     'DB_CATEGORY', 'GuardDuty Multi Account Member Role')
-ORGANIZATION_IAM_ROLE_ARN = os.environ.get('ORGANIZATION_IAM_ROLE_ARN')
+ORGANIZATION_IAM_ROLE_ARNS = os.environ.get(
+    'ORGANIZATION_IAM_ROLE_ARNS')
 ACCOUNT_FILTER_LIST = os.environ.get('ACCOUNT_FILTER_LIST', '')
 
 
@@ -224,8 +225,8 @@ def handle(event, context):
           member account
 
     Set environment variables
-      * ORGANIZATION_IAM_ROLE_ARN : IAM Role ARN to assume to reach AWS
-        Organization parent account
+      * ORGANIZATION_IAM_ROLE_ARN_LIST : Comma delimited list of IAM Role ARNs
+        to assume to reach AWS Organization parent accounts
       * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to filter on
 
     :param event: Lambda event object
@@ -235,11 +236,18 @@ def handle(event, context):
     local_account_id = boto3.client('sts').get_caller_identity()["Account"]
     guardduty_regions = local_boto_session.get_available_regions('guardduty')
     default_region = 'us-west-2'
-    org_boto_session = get_session(ORGANIZATION_IAM_ROLE_ARN)
+    organizations_account_id_map = {}
+    org_arn_list = (
+        [x.strip() for x in ORGANIZATION_IAM_ROLE_ARNS.split(',')]
+        if ORGANIZATION_IAM_ROLE_ARNS is not None else [None])
+    for org_arn in org_arn_list:
+        org_boto_session = get_session(org_arn)
 
-    # Fetch the accounts list from AWS Organizations
-    organizations_account_id_map = get_account_id_email_map_from_organizations(
-        org_boto_session, region_name=default_region)
+        # Fetch the accounts list from AWS Organizations
+        organizations_account_id_map.update(
+            get_account_id_email_map_from_organizations(
+                org_boto_session, region_name=default_region))
+
     logger.debug(
         'Organization account ID map: {}'.format(organizations_account_id_map))
 

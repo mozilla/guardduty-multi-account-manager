@@ -6,16 +6,14 @@ Parameters:
   AccountFilterList:
     Type: String
     Default: ''
-    # Default: 656532927350
     Description: Space delimited list of account IDs to filter on. Leave this empty to process all accounts
-  OrganizationAccountArn:
+  OrganizationAccountArns:
     Type: String
     Default: ''
-    # Default: arn:aws:iam::329567179436:role/Infosec-Organization-Reader
     Description: >
-      ARN of an IAM Role to assume in order to query the AWS Organization parent
-      if the Org parent is a different AWS account. Leave this empty if you are
-      deploying within the AWS Organization parent account
+      ARNs of IAM Roles to assume in order to query the AWS Organization parents
+      if the Org parents are different AWS accounts. Leave this empty if you are
+      deploying within a single AWS Organization parent account
   LambdaCodeS3BucketNamePrefix:
     Type: String
     Default: public.
@@ -61,7 +59,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
       Policies:
-        - PolicyName: "AllowRoleAssumption"
+        - PolicyName: "AllowRoleAssumptionOfMembers"
           PolicyDocument:
             Version: "2012-10-17"
             Statement:
@@ -70,7 +68,14 @@ Resources:
                 Resource:
                   - arn:aws:iam::*:role/multi-account-guard-duty/*
                   - arn:aws:iam::*:role/mutli-account-guard-duty/*
-                  - !Ref OrganizationAccountArn
+                  - !Ref OrganizationAccountArns
+        - PolicyName: "AllowRoleAssumptionOfOrgReaders"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action: sts:AssumeRole
+                Resource: !Split [ ",", !Ref OrganizationAccountArns ]
         - PolicyName: "AllowSTSGetCallerIdentity"
           PolicyDocument:
             Version: "2012-10-17"
@@ -126,7 +131,7 @@ Resources:
           ACCOUNT_FILTER_LIST: !Ref AccountFilterList
           DYNAMODB_TABLE_NAME: !FindInMap [ Variables, DynamoDBTable, Name ]
           DB_CATEGORY: !FindInMap [ Variables, DynamoDBTable, Category ]
-          ORGANIZATION_IAM_ROLE_ARN: !Ref OrganizationAccountArn
+          ORGANIZATION_IAM_ROLE_ARNS: !Ref OrganizationAccountArns
   InvitationManagerScheduledRule:
     Type: AWS::Events::Rule
     Properties:

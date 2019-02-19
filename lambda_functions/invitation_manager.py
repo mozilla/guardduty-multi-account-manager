@@ -9,7 +9,6 @@ if root.handlers:
     for handler in root.handlers:
         root.removeHandler(handler)
 
-
 logging.basicConfig(
     level=logging.INFO,
     handlers=[logging.StreamHandler()]
@@ -18,12 +17,12 @@ logger = logging.getLogger(__name__)
 logging.getLogger('botocore').setLevel(logging.CRITICAL)
 logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
-
 DYNAMODB_TABLE_NAME = os.environ.get(
     'DYNAMODB_TABLE_NAME', 'cloudformation-stack-emissions')
 DB_CATEGORY = os.environ.get(
     'DB_CATEGORY', 'GuardDuty Multi Account Member Role')
-ORGANIZATION_IAM_ROLE_ARN = os.environ.get('ORGANIZATION_IAM_ROLE_ARN')
+ORGANIZATION_IAM_ROLE_ARNS = os.environ.get(
+    'ORGANIZATION_IAM_ROLE_ARNS')
 ACCOUNT_FILTER_LIST = os.environ.get('ACCOUNT_FILTER_LIST', '')
 
 
@@ -92,7 +91,8 @@ def create_detector(boto_session, region_name, account_id=''):
     gd = boto_session.client('guardduty', region_name=region_name)
     response = gd.create_detector(
         Enable=True,
-        # FindingPublishingFrequency='FIFTEEN_MINUTES'  # We need a newer version of boto3 to support this argument
+        # FindingPublishingFrequency='FIFTEEN_MINUTES'
+        # We need a newer version of boto3 to support this argument
         # https://github.com/boto/botocore/commit/31f3dfd37a89b018f818807d9977d6d4e5090467
     )
     logger.info(
@@ -154,7 +154,7 @@ def get_account_role_map(boto_session, region_name):
             for x in items
             if x.get('category') == DB_CATEGORY
             and {'aws-account-id',
-                  'GuardDutyMemberAccountIAMRoleArn'} <= set(x)}
+                 'GuardDutyMemberAccountIAMRoleArn'} <= set(x)}
 
 
 def tear_down_members(account_ids):
@@ -164,45 +164,45 @@ def tear_down_members(account_ids):
     account_id_role_arn_map = get_account_role_map(
         local_boto_session, 'us-west-2')
     for region_name in guardduty_regions:
-        detector_id = get_all_detectors(local_boto_session, region_name)['DetectorIds'][0]
+        detector_id = get_all_detectors(
+            local_boto_session, region_name)['DetectorIds'][0]
         client = local_boto_session.client(
             'guardduty', region_name=region_name)
-        response = client.delete_members(
+        client.delete_members(
             AccountIds=account_ids,
             DetectorId=detector_id
         )
         logger.info('{}: Deleted member {} from master detector {}'.format(
-                region_name, account_ids, detector_id))
+            region_name, account_ids, detector_id))
 
         for account_id in account_ids:
-            member_boto_session = get_session(account_id_role_arn_map[account_id])
+            member_boto_session = get_session(
+                account_id_role_arn_map[account_id])
             member_client = member_boto_session.client(
                 'guardduty', region_name=region_name)
             for member_detector_id in get_all_detectors(
                     member_boto_session, region_name)['DetectorIds']:
                 try:
-                    response = member_client.disassociate_from_master_account(
-                        DetectorId=member_detector_id
-                    )
-                    logger.info('{}: {} : Dissasociated member dector id {} from master'.format(
-                        region_name, account_id, member_detector_id))
-                except:
-                    pass
-                try:
-                    response = member_client.delete_detector(
-                        DetectorId=member_detector_id
-                    )
+                    member_client.disassociate_from_master_account(
+                        DetectorId=member_detector_id)
                     logger.info(
-                        '{}: {} : Deleted member dector id {}'.format(
+                        '{}: {} : Dissasociated member dector id {} from '
+                        'master'.format(
                             region_name, account_id, member_detector_id))
                 except:
                     pass
-            response = member_client.delete_invitations(
-                AccountIds=[local_account_id])
+                try:
+                    member_client.delete_detector(
+                        DetectorId=member_detector_id)
+                    logger.info(
+                        '{}: {} : Deleted member detector id {}'.format(
+                            region_name, account_id, member_detector_id))
+                except:
+                    pass
+            member_client.delete_invitations(AccountIds=[local_account_id])
             logger.info(
-                '{}: {} : Inivitation from {} deleted'.format(
+                '{}: {} : Invitation from {} deleted'.format(
                     region_name, account_id, local_account_id))
-
 
 
 def handle(event, context):
@@ -220,12 +220,12 @@ def handle(event, context):
       * For each account
         * Update member account detector to enabled if DISABLED
         * Get or create a detector in the member account
-        * For members with a pending invitationaAccept the invitation in the
+        * For members with a pending invitation, accept the invitation in the
           member account
 
     Set environment variables
-      * ORGANIZATION_IAM_ROLE_ARN : IAM Role ARN to assume to reach AWS
-        Organization parent account
+      * ORGANIZATION_IAM_ROLE_ARN_LIST : Comma delimited list of IAM Role ARNs
+        to assume to reach AWS Organization parent accounts
       * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to filter on
 
     :param event: Lambda event object
@@ -235,11 +235,18 @@ def handle(event, context):
     local_account_id = boto3.client('sts').get_caller_identity()["Account"]
     guardduty_regions = local_boto_session.get_available_regions('guardduty')
     default_region = 'us-west-2'
-    org_boto_session = get_session(ORGANIZATION_IAM_ROLE_ARN)
+    organizations_account_id_map = {}
+    org_arn_list = (
+        [x.strip() for x in ORGANIZATION_IAM_ROLE_ARNS.split(',')]
+        if ORGANIZATION_IAM_ROLE_ARNS is not None else [None])
+    for org_arn in org_arn_list:
+        org_boto_session = get_session(org_arn)
 
-    # Fetch the accounts list from AWS Organizations
-    organizations_account_id_map = get_account_id_email_map_from_organizations(
-        org_boto_session, region_name=default_region)
+        # Fetch the accounts list from AWS Organizations
+        organizations_account_id_map.update(
+            get_account_id_email_map_from_organizations(
+                org_boto_session, region_name=default_region))
+
     logger.debug(
         'Organization account ID map: {}'.format(organizations_account_id_map))
 
@@ -281,14 +288,14 @@ def handle(event, context):
             {'AccountId': account_id, 'Email': email}
             for account_id, email in organizations_account_id_map.items()
             if account_id in account_id_role_arn_map.keys() and
-               (account_id not in members
-                or account_id in get_members('REMOVED'))]
+            (account_id not in members
+             or account_id in get_members('REMOVED'))]
         if account_details:
             client.create_members(
                 AccountDetails=account_details,
                 DetectorId=local_detector_id)
             logger.info(
-                '{} : Member created : {}'.format(
+                '{} : Members created : {}'.format(
                     region_name, account_details))
         # Invite members that have been created
         account_ids_to_invite = get_members('CREATED', 'RESIGNED')
@@ -340,6 +347,5 @@ def handle(event, context):
                         DetectorId=detector_id,
                         InvitationId=invitation_id,
                         MasterId=local_account_id)
-                    logger.info(
-                        '{} : {} : Accepted member invite on their behalf'.format(
-                            region_name, account_id))
+                    logger.info('{} : {} : Accepted member invite on their '
+                                'behalf'.format(region_name, account_id))

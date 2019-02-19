@@ -2,28 +2,45 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager for AWS GuardDuty
 Metadata:
   Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
+  TemplateVersion: 1.0.1
 Parameters:
   AccountFilterList:
     Type: String
     Default: ''
-    # Default: 656532927350
-    Description: Space delimited list of account IDs to filter on. Leave this empty to process all accounts
-  OrganizationAccountArn:
+    Description: >
+      Space delimited list of account IDs to filter on. Leave this empty to
+      process all accounts
+  OrganizationAccountArns:
     Type: String
     Default: ''
-    # Default: arn:aws:iam::329567179436:role/Infosec-Organization-Reader
     Description: >
-      ARN of an IAM Role to assume in order to query the AWS Organization parent
-      if the Org parent is a different AWS account. Leave this empty if you are
-      deploying within the AWS Organization parent account
-Mappings:
-  Variables:
-    CloudFormationTemplate:
-      Prefix: https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/
-    LambdaCode:
-      BucketNamePrefix: public.
-      BucketNameSuffix: .infosec.mozilla.org
-      DirectoryPath: guardduty-multi-account-manager/lambda/
+      ARNs of IAM Roles to assume in order to query the AWS Organization parents
+      if the Org parents are different AWS accounts. Leave this empty if you are
+      deploying within a single AWS Organization parent account
+  CloudFormationTemplatePrefix:
+    Type: String
+    Default: https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/
+    Description: >
+      The S3 bucket and path containing the child CloudFormation templates
+  LambdaCodeS3BucketNamePrefix:
+    Type: String
+    Default: public.
+    Description: >
+      The section of the S3 bucket name preceding the region. For example the
+      bucket "public.us-west-2.infosec.mozilla.org" would have a prefix of
+      "public."
+  LambdaCodeS3BucketNameSuffix:
+    Type: String
+    Default: .infosec.mozilla.org
+    Description: >
+      The section of the S3 bucket name succeeds the region. For example the
+      bucket "public.us-west-2.infosec.mozilla.org" would have a suffix of
+      ".infosec.mozilla.org"
+  LambdaCodeS3Path:
+    Type: String
+    Default: guardduty-multi-account-manager/lambda/
+    Description: >
+      The directory path in the Lambda code bucket containing the Lambda code
 Resources:
   GuardDutyInvitationManager:
     Type: AWS::CloudFormation::Stack
@@ -31,21 +48,21 @@ Resources:
       Tags:
         - Key: application
           Value: guardduty-multi-account-manager
-      TemplateURL: !Join [ '', [ !FindInMap [ Variables, CloudFormationTemplate, Prefix ], guardduty-invitation-manager.yml ] ]
+      TemplateURL: !Join [ '', [ !Ref 'CloudFormationTemplatePrefix', guardduty-invitation-manager.yml ] ]
       Parameters:
-        LambdaCodeS3BucketNamePrefix: !FindInMap [ Variables, LambdaCode, BucketNamePrefix ]
-        LambdaCodeS3BucketNameSuffix: !FindInMap [ Variables, LambdaCode, BucketNameSuffix ]
-        LambdaCodeS3Path: !FindInMap [ Variables, LambdaCode, DirectoryPath ]
+        LambdaCodeS3BucketNamePrefix: !Ref LambdaCodeS3BucketNamePrefix
+        LambdaCodeS3BucketNameSuffix: !Ref LambdaCodeS3BucketNameSuffix
+        LambdaCodeS3Path: !Ref LambdaCodeS3Path
         AccountFilterList: !Ref AccountFilterList
-        OrganizationAccountArn: !Ref OrganizationAccountArn
+        OrganizationAccountArns: !Ref OrganizationAccountArns
   GuardDutyEventNormalization:
     Type: AWS::CloudFormation::Stack
     Properties:
       Tags:
         - Key: application
           Value: guardduty-multi-account-manager
-      TemplateURL: !Join [ '', [ !FindInMap [ Variables, CloudFormationTemplate, Prefix ], guardduty-event-normalization.yml ] ]
+      TemplateURL: !Join [ '', [ !Ref 'CloudFormationTemplatePrefix', guardduty-event-normalization.yml ] ]
       Parameters:
-        LambdaCodeS3BucketNamePrefix: !FindInMap [ Variables, LambdaCode, BucketNamePrefix ]
-        LambdaCodeS3BucketNameSuffix: !FindInMap [ Variables, LambdaCode, BucketNameSuffix ]
-        LambdaCodeS3Path: !FindInMap [ Variables, LambdaCode, DirectoryPath ]
+        LambdaCodeS3BucketNamePrefix: !Ref LambdaCodeS3BucketNamePrefix
+        LambdaCodeS3BucketNameSuffix: !Ref LambdaCodeS3BucketNameSuffix
+        LambdaCodeS3Path: !Ref LambdaCodeS3Path

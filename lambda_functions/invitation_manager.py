@@ -300,6 +300,17 @@ def handle(event, context):
             logger.info(
                 '{} : Members created : {}'.format(
                     region_name, account_details))
+
+        # Delete members that got stuck at email verification
+        account_ids_to_delete = get_members('EMAILVERIFICATIONFAILED')
+        if account_ids_to_delete:
+            client.delete_members(
+                AccountIds=account_ids_to_delete,
+                DetectorId=local_detector_id)
+            logger.info(
+                '{} : Member deleted due to email verification failure : {}'.format(
+                    region_name, account_ids_to_delete))
+
         # Invite members that have been created
         account_ids_to_invite = get_members('CREATED', 'RESIGNED')
         if account_ids_to_invite:
@@ -330,25 +341,29 @@ def handle(event, context):
                         region_name, account_id))
             if account_id in get_members(
                     'RESIGNED', 'REMOVED', 'INVITED',
-                    'EMAILVERIFICATIONINPROGRESS', 'EMAILVERIFICATIONFAILED'):
+                    'EMAILVERIFICATIONINPROGRESS'):
                 # Get or create a detector in the member account
                 detector_id = find_or_create_detector(
                     boto_session, region_name, account_id)
                 if account_id in get_members(
-                        'RESIGNED', 'INVITED', 'EMAILVERIFICATIONINPROGRESS',
-                        'EMAILVERIFICATIONFAILED'):
+                        'RESIGNED', 'INVITED', 'EMAILVERIFICATIONINPROGRESS'):
                     # For members with a pending invitation
                     # Accept the invitation in the member account
                     response = member_client.list_invitations()
-                    # This assumes that if the master things the member is
-                    # INVITED then the member will have a listed pending
-                    # invitation
-                    invitation_id = next(
+                    invitation_id = next((
                         x['InvitationId'] for x in response['Invitations']
-                        if x['AccountId'] == local_account_id)
-                    member_client.accept_invitation(
-                        DetectorId=detector_id,
-                        InvitationId=invitation_id,
-                        MasterId=local_account_id)
-                    logger.info('{} : {} : Accepted member invite on their '
-                                'behalf'.format(region_name, account_id))
+                        if x['AccountId'] == local_account_id), None)
+                    if invitation_id is not None:
+                        member_client.accept_invitation(
+                            DetectorId=detector_id,
+                            InvitationId=invitation_id,
+                            MasterId=local_account_id)
+                        logger.info('{} : {} : Accepted member invite on their'
+                                    ' behalf'.format(region_name, account_id))
+                    else:
+                        logger.error(
+                            '{} : {} : GuardDuty parent reports member '
+                            'RelationshipStatus of {} however member reports '
+                            'pending invitations of {}'.format(
+                                region_name, account_id, members[account_id],
+                                response['Invitations']))

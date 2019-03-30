@@ -273,11 +273,14 @@ def handle(event, context):
         # Fetch the GuardDuty members list
         client = local_boto_session.client(
             'guardduty', region_name=region_name)
-        response = client.get_members(
-            AccountIds=list(account_id_role_arn_map),
-            DetectorId=local_detector_id)
+        list_of_members = [
+            y for sublist in [
+                x['Members'] for x in client.get_paginator(
+                    'list_members').paginate(
+                    DetectorId=local_detector_id, OnlyAssociated="FALSE")]
+            for y in sublist]
         members = {x['AccountId']: x['RelationshipStatus']
-                   for x in response['Members']}
+                   for x in list_of_members}
         logger.debug('{} : Member dict : {}'.format(region_name, members))
 
         # Create a get_members function to work with the members list

@@ -99,6 +99,7 @@ Resources:
               - Effect: "Allow"
                 Action:
                 - guardduty:GetMembers
+                - guardduty:ListMembers
                 - guardduty:CreateMembers
                 - guardduty:InviteMembers
                 Resource: '*'

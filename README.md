@@ -57,8 +57,10 @@ the following:
   [GuardDuty Member Account IAM Role](cloudformation/guardduty-member-account-role.yml)
   information. In order to deploy this service 
   [follow the instructions in the README](https://github.com/mozilla/cloudformation-cross-account-outputs#deploy-the-infrastructure)
-  which explains how. Make sure that in Step 3, you deploy the `cloudformation-sns-emission-consumer.yml`
-  in every region that you want to allow your GuardDuty members to potentially
+  which explains how. 
+  * Make sure that in Step 1 and 2 you deploy each template in only one region. These resources shouldn't be deployed multiple times in an AWS account.
+  * Make sure that in Step 3, you deploy the `cloudformation-sns-emission-consumer.yml`
+  template in every region that you want to allow your GuardDuty members to potentially
   deploy the GuardDuty member role in. For example, in the included 
   [`guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml),
   it assumes that you'll have deployed `cloudformation-sns-emission-consumer.yml`

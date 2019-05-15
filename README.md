@@ -96,9 +96,9 @@ the following:
    [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
    template as described above
 2. Deploy the customized [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
-   CloudFormation template in your member AWS accounts. The account will then
-   register with the master account and go through the invitation process 
-   automatically for every region.
+   CloudFormation template in your member AWS accounts. This CloudFormation template should only be deployed once in a single
+   region in each member AWS account. The account will then register with the master account and go through the invitation
+   process automatically for every region.
 
 ## AWS re:invent 2018 SEC403 Presentation
 

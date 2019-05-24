@@ -1,18 +1,36 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Mozilla Multi Account Manager member account roles to allow guardDuty master to accept invitations.
+
+Parameters:
+  MasterAccountId:
+    Type: String
+    Description: The master AWS account ID where the GuardDuty results will be aggregated
+    AllowedPattern: "[0-9]{12}"
+    ConstraintDescription: Should be an AWS Account ID
+    MinLength: 12
+    MaxLength: 12
+
+  SNSTopicForPublishingIAMRoleARNsAccountId: 
+    Type: String
+    Description: The AWS account ID where the SNS topic for publishing IAM roles ARNs is located
+    AllowedPattern: "[0-9]{12}"
+    ConstraintDescription: Should be an AWS Account ID
+    MinLength: 12
+    MaxLength: 12
+
+  SNSTopicForPublishingIAMRoleARNsName: 
+    Type: String
+    Description: The name of the SNS topic for publishing IAM roles ARNs 
+    Default: cloudformation-stack-emissions
+    AllowedPattern: "[A-Za-z0-9_-]+"
+    ConstraintDescription: Only alphanumeric characters, dash and underscores
+    MinLength: 1
+    MaxLength: 256
+
 Metadata:
   Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
+
 Mappings:
-  Variables:
-    MasterAccount:
-      # Make sure to set this Principal variable to the account running your
-      # GuardDuty master. Leaving it as the default will cause stack failure
-      # as this example value is an invalid reserved principal
-      Principal: arn:aws:iam::123456789012:root
-    SNSTopicForPublishingIAMRoleArn:
-      # Make sure to set this Account variable to the account ID running your CloudFormation Cross Account Output infrastructure
-      Account: 123456789012
-      Topic: cloudformation-stack-emissions
   TheRegionYouAreDeployingIn:
     # Create a record for each region in which CloudFormation Cross Account Output infrastructure is deployed
     us-east-1:
@@ -21,8 +39,10 @@ Mappings:
     us-west-2:
       WhatIsThisMapping: ''
       IsNotSupportedPleaseUseADifferentRegion: True
+
 Conditions:
   RunningInAllowedRegion: !Equals [ !FindInMap [ TheRegionYouAreDeployingIn, !Ref 'AWS::Region', IsNotSupportedPleaseUseADifferentRegion ] , True ]
+
 Resources:
   GuardDutyInvitationAcceptorIAMRole:
     Type: AWS::IAM::Role
@@ -32,7 +52,8 @@ Resources:
         Statement:
           - Effect: Allow
             Principal:
-              AWS: !FindInMap [ Variables, MasterAccount, Principal ]
+              # Use the complete principal in order to avoid CloudFormation drift
+              AWS: !Sub "arn:aws:iam::${MasterAccountId}:root"
             Action: sts:AssumeRole
       Policies:
         - PolicyName: AllowAcceptingGuardDutyInvitation
@@ -58,7 +79,7 @@ Resources:
     Type: Custom::PublishIAMRoleArnsToSNS
     Version: '1.0'
     Properties:
-      ServiceToken: !Join [ ':', [ 'arn:aws:sns', !Ref 'AWS::Region', !FindInMap [ Variables, SNSTopicForPublishingIAMRoleArn, Account ], !FindInMap [ Variables, SNSTopicForPublishingIAMRoleArn, Topic ] ] ]
+      ServiceToken: !Sub 'arn:aws:sns:${AWS::Region}:${SNSTopicForPublishingIAMRoleARNsAccountId}:${SNSTopicForPublishingIAMRoleARNsName}'
       category: GuardDuty Multi Account Member Role
       GuardDutyMemberAccountIAMRoleArn: !GetAtt GuardDutyInvitationAcceptorIAMRole.Arn
       GuardDutyMemberAccountIAMRoleName: !Ref GuardDutyInvitationAcceptorIAMRole

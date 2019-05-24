@@ -43,6 +43,7 @@ Mappings:
   Variables:
     DynamoDBTable:
       Name: cloudformation-stack-emissions
+      Region: us-west-2
       Category: GuardDuty Multi Account Member Role
 Resources:
   InvitationManagerIAMRole:
@@ -131,6 +132,7 @@ Resources:
         Variables:
           ACCOUNT_FILTER_LIST: !Ref AccountFilterList
           DYNAMODB_TABLE_NAME: !FindInMap [ Variables, DynamoDBTable, Name ]
+          DYNAMODB_TABLE_REGION: !FindInMap [ Variables, DynamoDBTable, Region ]
           DB_CATEGORY: !FindInMap [ Variables, DynamoDBTable, Category ]
           ORGANIZATION_IAM_ROLE_ARNS: !Ref OrganizationAccountArns
   InvitationManagerScheduledRule:

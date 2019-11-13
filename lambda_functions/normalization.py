@@ -28,7 +28,7 @@ def _get_resource_info(guardduty_event):
     if instance_detail is not None:
         return instance_detail.get('instanceId')
     else:
-        return 'guardduty-{account_id}'.format(account_id=event.get('account'))
+        return 'guardduty-{account_id}'.format(account_id=guardduty_event.get('account'))
 
 def transform_event(event):
     """Take guardDuty SNS notification and turn it into a standard MozDef event."""
@@ -61,6 +61,10 @@ def handle(event, context):
     """Basic lambda handler."""
     sns_client = boto3.client('sns')
     for record in event.get('Records', []):
-        mozdef_event = transform_event(record)
-        res = send_to_sns(mozdef_event, sns_client)
+        try:
+            mozdef_event = transform_event(record)
+            res = send_to_sns(mozdef_event, sns_client)
+        except Exception as e:
+            logger.error('Received exception "{}" for event {}'.format(e, record))
+            raise
     return mozdef_event

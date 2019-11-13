@@ -61,6 +61,10 @@ def handle(event, context):
     """Basic lambda handler."""
     sns_client = boto3.client('sns')
     for record in event.get('Records', []):
-        mozdef_event = transform_event(record)
-        res = send_to_sns(mozdef_event, sns_client)
+        try:
+            mozdef_event = transform_event(record)
+            res = send_to_sns(mozdef_event, sns_client)
+        except Exception as e:
+            logger.error('Received exception "{}" for event {}'.format(e, record))
+            raise
     return mozdef_event

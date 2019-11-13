@@ -28,7 +28,7 @@ def _get_resource_info(guardduty_event):
     if instance_detail is not None:
         return instance_detail.get('instanceId')
     else:
-        return 'guardduty-{account_id}'.format(account_id=event.get('account'))
+        return 'guardduty-{account_id}'.format(account_id=guardduty_event.get('account'))
 
 def transform_event(event):
     """Take guardDuty SNS notification and turn it into a standard MozDef event."""

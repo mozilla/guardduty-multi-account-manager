@@ -1,4 +1,4 @@
-cfnlint
+cfn-lint
 pytest
 pytest-watch
 pytest-cov

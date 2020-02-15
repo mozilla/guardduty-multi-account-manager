@@ -21,6 +21,52 @@ Mappings:
     us-west-2:
       WhatIsThisMapping: ''
       IsNotSupportedPleaseUseADifferentRegion: True
+    ap-east-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    ap-northeast-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    ap-northeast-2:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    ap-south-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    ap-southeast-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    ap-southeast-2:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    ca-central-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    eu-central-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    eu-north-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    eu-west-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    eu-west-2:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    eu-west-3:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    sa-east-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    us-east-2:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+    us-west-1:
+      WhatIsThisMapping: ''
+      IsNotSupportedPleaseUseADifferentRegion: True
+
 Conditions:
   RunningInAllowedRegion: !Equals [ !FindInMap [ TheRegionYouAreDeployingIn, !Ref 'AWS::Region', IsNotSupportedPleaseUseADifferentRegion ] , True ]
 Resources:

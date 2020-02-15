@@ -39,11 +39,21 @@ Parameters:
       The path in the S3 bucket containing the Lambda code.
     AllowedPattern: '.*\/$'
     ConstraintDescription: A path ending in the / character
+
+  CrossAccountOutputsDynamoDBTableName:
+    Type: String
+    Description: The name of the DynamoDB table deployed by the cross-accounts-outputs stack
+    Default: cloudformation-stack-emissions
+    AllowedPattern: "[A-Za-z0-9._-]+"
+    ConstraintDescription: Only alphanumeric characters, dash, underscores and dot
+    MinLength: 3
+    MaxLength: 255
+
 Mappings:
   Variables:
     DynamoDBTable:
-      Name: cloudformation-stack-emissions
       Category: GuardDuty Multi Account Member Role
+
 Resources:
   InvitationManagerIAMRole:
     Type: AWS::IAM::Role
@@ -116,7 +126,8 @@ Resources:
             Statement:
               - Effect: "Allow"
                 Action: dynamodb:Scan
-                Resource: !Join [ '', [ 'arn:aws:dynamodb:*:', !Ref 'AWS::AccountId', ':table/', !FindInMap [ Variables, DynamoDBTable, Name ]]]
+                Resource: !Sub 'arn:aws:dynamodb:*:${AWS::AccountId}:table/${CrossAccountOutputsDynamoDBTableName}' 
+  
   InvitationManagerFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -130,9 +141,10 @@ Resources:
       Environment:
         Variables:
           ACCOUNT_FILTER_LIST: !Ref AccountFilterList
-          DYNAMODB_TABLE_NAME: !FindInMap [ Variables, DynamoDBTable, Name ]
+          DYNAMODB_TABLE_NAME: !Ref CrossAccountOutputsDynamoDBTableName
           DB_CATEGORY: !FindInMap [ Variables, DynamoDBTable, Category ]
           ORGANIZATION_IAM_ROLE_ARNS: !Ref OrganizationAccountArns
+  
   InvitationManagerScheduledRule:
     Type: AWS::Events::Rule
     Properties:
@@ -142,6 +154,7 @@ Resources:
       Targets:
         - Arn: !GetAtt InvitationManagerFunction.Arn
           Id: "InvitationManager"
+  
   PermissionForEventsToInvokeLambda:
     Type: AWS::Lambda::Permission
     Properties:

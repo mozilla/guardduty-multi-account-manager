@@ -19,6 +19,8 @@ logging.getLogger('urllib3').setLevel(logging.CRITICAL)
 
 DYNAMODB_TABLE_NAME = os.environ.get(
     'DYNAMODB_TABLE_NAME', 'cloudformation-stack-emissions')
+DYNAMODB_TABLE_REGION = os.environ.get(
+    'DYNAMODB_TABLE_REGION', 'us-west-2')
 DB_CATEGORY = os.environ.get(
     'DB_CATEGORY', 'GuardDuty Multi Account Member Role')
 ORGANIZATION_IAM_ROLE_ARNS = os.environ.get(
@@ -162,7 +164,7 @@ def tear_down_members(account_ids):
     local_account_id = boto3.client('sts').get_caller_identity()["Account"]
     guardduty_regions = local_boto_session.get_available_regions('guardduty')
     account_id_role_arn_map = get_account_role_map(
-        local_boto_session, 'us-west-2')
+        local_boto_session, DYNAMODB_TABLE_REGION)
     for region_name in guardduty_regions:
         detector_id = get_all_detectors(
             local_boto_session, region_name)['DetectorIds'][0]
@@ -234,7 +236,6 @@ def handle(event, context):
     local_boto_session = get_session(os.environ.get('MANAGER_IAM_ROLE_ARN'))
     local_account_id = boto3.client('sts').get_caller_identity()["Account"]
     guardduty_regions = local_boto_session.get_available_regions('guardduty')
-    default_region = 'us-west-2'
     organizations_account_id_map = {}
     org_arn_list = (
         [x.strip() for x in ORGANIZATION_IAM_ROLE_ARNS.split(',')]
@@ -245,7 +246,7 @@ def handle(event, context):
         # Fetch the accounts list from AWS Organizations
         organizations_account_id_map.update(
             get_account_id_email_map_from_organizations(
-                org_boto_session, region_name=default_region))
+                org_boto_session, region_name=DYNAMODB_TABLE_REGION))
 
     logger.debug(
         'Organization account ID map: {}'.format(organizations_account_id_map))
@@ -261,7 +262,7 @@ def handle(event, context):
 
     # Get IAM Role ARNs for each account
     account_id_role_arn_map = get_account_role_map(
-        local_boto_session, default_region)
+        local_boto_session, DYNAMODB_TABLE_REGION)
     logger.debug(
         'Account ID IAM Role map: {}'.format(account_id_role_arn_map))
 

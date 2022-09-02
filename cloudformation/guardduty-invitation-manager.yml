@@ -123,7 +123,7 @@ Resources:
   InvitationManagerFunction:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 900
       Handler: lambda_functions/invitation_manager.handle
       Role: !GetAtt InvitationManagerIAMRole.Arn

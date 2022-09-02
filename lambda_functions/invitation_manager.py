@@ -226,7 +226,9 @@ def handle(event, context):
     Set environment variables
       * ORGANIZATION_IAM_ROLE_ARN_LIST : Comma delimited list of IAM Role ARNs
         to assume to reach AWS Organization parent accounts
-      * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to filter on
+      * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to include.
+        If this is provided, only these accounts will be included. If it's not
+        provided, all accounts will be included.
 
     :param event: Lambda event object
     :param context: Lambda context object

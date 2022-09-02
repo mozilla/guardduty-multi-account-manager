@@ -6,14 +6,18 @@ Parameters:
   AccountFilterList:
     Type: String
     Default: ''
-    Description: Space delimited list of account IDs to filter on. Leave this empty to process all accounts
+    Description: >
+      Space delimited list of account IDs to filter on. If this is set, only
+      these accounts will be processed. If this is empty all accounts will be
+      processed.
   OrganizationAccountArns:
     Type: String
     Default: ''
     Description: >
-      ARNs of IAM Roles to assume in order to query the AWS Organization parents
-      if the Org parents are different AWS accounts. Leave this empty if you are
-      deploying within a single AWS Organization parent account
+      Comma delimited list of ARNs of IAM Roles to assume in order to query the
+      AWS Organization parents if the Org parents are different AWS accounts. 
+      Leave this empty if you are deploying this stack within a single AWS 
+      Organization parent account.
   LambdaCodeS3BucketNamePrefix:
     Type: String
     Default: public.

@@ -72,7 +72,6 @@ Resources:
                 Resource:
                   - arn:aws:iam::*:role/multi-account-guard-duty/*
                   - arn:aws:iam::*:role/mutli-account-guard-duty/*
-                  - !Ref OrganizationAccountArns
         - PolicyName: "AllowRoleAssumptionOfOrgReaders"
           PolicyDocument:
             Version: "2012-10-17"

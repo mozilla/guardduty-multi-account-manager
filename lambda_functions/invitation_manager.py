@@ -135,7 +135,7 @@ def get_account_id_email_map_from_organizations(boto_session, region_name):
 def get_account_role_map(boto_session, region_name):
     """Fetch the ARNs of all the IAM Roles which people have created in other
     AWS accounts which are inserted into DynamoDB with
-    http://github.com/gene1wood/cloudformation-cross-account-outputs
+    http://github.com/mozilla/cloudformation-cross-account-outputs
 
     :return: dict with account ID keys and IAM Role ARN values
     """

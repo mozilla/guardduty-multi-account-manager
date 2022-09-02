@@ -21,7 +21,7 @@ Parameters:
     Default: public.
     Description: >
       A prefix string describing the S3 bucket name in each region containing
-      the gd2md.zip and plumbing.zip Lambda code. This parameter is appended with
+      the normalization.zip and plumbing.zip Lambda code. This parameter is appended with
       the region name. For example my-bucket- would be turned into
       my-bucket-us-west-2 for us-west-2. Set this to blank if your bucket name
       has no prefix.
@@ -30,7 +30,7 @@ Parameters:
     Default: .infosec.mozilla.org
     Description: >
       A suffix string describing the S3 bucket name in each region containing
-      the gd2md.zip and plumbing.zip Lambda code. This parameter is prepended with
+      the normalization.zip and plumbing.zip Lambda code. This parameter is prepended with
       the region name. For example -my-bucket would be turned into
       us-west-2-my-bucket for us-west-2. Set this to blank if your bucket name
       has no suffix

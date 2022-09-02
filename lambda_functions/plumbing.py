@@ -33,7 +33,7 @@ EVENT_PATTERN = {
 
 NORMALIZER_LAMBDA_FUNCTION = os.getenv(
     'NORMALIZER_LAMBDA_FUNCTION',
-    'arn:aws:lambda:us-east-1:371522382791:function:gd2md-findingsToMozDef-1O04GFRLK0EJQ'
+    'arn:aws:lambda:us-east-1:371522382791:function:findingsToMozDef-1O04GFRLK0EJQ'
 )
 
 
@@ -146,7 +146,7 @@ def setup_sns_publishing(boto_session):
         Targets=[
             {
                 'Arn': find_or_create_sns_topic(boto_session),
-                'Id': 'gd2MdSNS',
+                'Id': 'normalizationSNS',
             }
         ]
     )

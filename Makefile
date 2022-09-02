@@ -30,12 +30,12 @@ upload-templates:
 	@export AWS_REGION=$(AWS_REGION)
 	aws s3 sync cloudformation/ $(S3_BUCKET_TEMPLATE_URI) --exclude="*" --include="*.yml"
 
-.PHONY: upload-gd2md-lambda
-upload-gd2md-lambda:
+.PHONY: upload-normalization-lambda
+upload-normalization-lambda:
 	@export AWS_REGION=$(AWS_REGION)
-	zip lambda_functions/gd2md.zip lambda_functions/normalization.py
-	aws s3 cp lambda_functions/gd2md.zip $(S3_BUCKET_LAMBDA_URI)/gd2md.zip
-	rm lambda_functions/gd2md.zip
+	zip lambda_functions/normalization.zip lambda_functions/normalization.py
+	aws s3 cp lambda_functions/normalization.zip $(S3_BUCKET_LAMBDA_URI)/normalization.zip
+	rm lambda_functions/normalization.zip
 
 .PHONY: upload-plumbing-lambda
 upload-plumbing-lambda:

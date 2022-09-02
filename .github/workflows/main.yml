@@ -1,0 +1,16 @@
+name: run-tests
+on:
+  pull_request:
+    branches:
+      - master
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Check CloudFormation syntax with cfn-lint
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2.2.2
+        with:
+          python-version: 3.9
+      - run: pip install --requirement $GITHUB_WORKSPACE/requirements.txt
+      - run: make cfn-lint

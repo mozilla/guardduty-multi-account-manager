@@ -119,7 +119,7 @@ Resources:
   findingsToMozDef:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: 'python3.6'
+      Runtime: 'python3.9'
       Timeout: 300
       Handler: lambda_functions/normalization.handle
       Role: !GetAtt 'GuardDutyToMozDefRole.Arn'
@@ -133,7 +133,7 @@ Resources:
   gdPlumbing:
     Type: AWS::Lambda::Function
     Properties:
-      Runtime: 'python3.6'
+      Runtime: 'python3.9'
       Timeout: 300
       Handler: lambda_functions/plumbing.handle
       Role: !GetAtt 'GuardDutyPlumbingRole.Arn'

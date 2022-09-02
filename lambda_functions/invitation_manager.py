@@ -135,7 +135,7 @@ def get_account_id_email_map_from_organizations(boto_session, region_name):
 def get_account_role_map(boto_session, region_name):
     """Fetch the ARNs of all the IAM Roles which people have created in other
     AWS accounts which are inserted into DynamoDB with
-    http://github.com/gene1wood/cloudformation-cross-account-outputs
+    https://github.com/mozilla/cloudformation-cross-account-outputs
 
     :return: dict with account ID keys and IAM Role ARN values
     """
@@ -226,7 +226,9 @@ def handle(event, context):
     Set environment variables
       * ORGANIZATION_IAM_ROLE_ARN_LIST : Comma delimited list of IAM Role ARNs
         to assume to reach AWS Organization parent accounts
-      * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to filter on
+      * ACCOUNT_FILTER_LIST : Space delimited list of account IDs to include.
+        If this is provided, only these accounts will be included. If it's not
+        provided, all accounts will be included.
 
     :param event: Lambda event object
     :param context: Lambda context object
@@ -307,9 +309,8 @@ def handle(event, context):
             client.delete_members(
                 AccountIds=account_ids_to_delete,
                 DetectorId=local_detector_id)
-            logger.info(
-                '{} : Member deleted due to email verification failure : {}'.format(
-                    region_name, account_ids_to_delete))
+            logger.info('{} : Member deleted due to email verification failure'
+                        ' : {}'.format(region_name, account_ids_to_delete))
 
         # Invite members that have been created
         account_ids_to_invite = get_members('CREATED', 'RESIGNED')

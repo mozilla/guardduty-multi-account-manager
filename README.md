@@ -31,8 +31,8 @@ This is why we elected to create GuardDuty Multi-Account Manager
 
 ## What is it?
 
-GuardDuty Multi-Account Manager is a series of lambda functions designed to do
-the following:
+GuardDuty Multi-Account Manager is a series of AWS Lambda functions designed to
+do the following:
 
 * Enable GuardDuty Masters in all AWS Regions present and future.
 * Empower account owners to decide to enable GuardDuty
@@ -85,16 +85,22 @@ the following:
   
 ### Getting Started
 
+If you want just the account management functionality :
+
+* Deploy the Cloudformation Stack from
+  [`cloudformation/guardduty-invitation-manager.yml`](https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/guardduty-invitation-manager.yml) in the master
+  account. [![Launch GuardDuty Multi Account Manager](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=guardduty-invitation-manager&templateURL=https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/guardduty-invitation-manager.yml)
+
+If you want the account management and centralized, normalized GuardDuty data in
+an SQS queue
+
 * Deploy the Cloudformation Stack from
   [`cloudformation/guardduty-multi-account-manager-parent.yml`](https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/guardduty-multi-account-manager-parent.yml) in the master
   account. [![Launch GuardDuty Multi Account Manager](https://s3.amazonaws.com/cloudformation-examples/cloudformation-launch-stack.png)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/new?stackName=guardduty-multi-account-manager&templateURL=https://s3-us-west-2.amazonaws.com/public.us-west-2.infosec.mozilla.org/guardduty-multi-account-manager/cf/guardduty-multi-account-manager-parent.yml)
 
-* The stack will spin up and create all Master Detectors in all regions, a
-  normalization functions, and all SNS Topics with CloudWatch events.
-
 ### Onboarding Accounts
 
-1. Ensure that the the mappings are configured in the
+1. Ensure that the mappings are configured in the
    [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)
    template as described above
 2. Deploy the customized [`cloudformation/guardduty-member-account-role.yml`](cloudformation/guardduty-member-account-role.yml)

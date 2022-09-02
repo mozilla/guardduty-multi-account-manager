@@ -4,7 +4,6 @@ Ensure continued publishing to
 import boto3
 import json
 import os
-import uuid
 
 from botocore.exceptions import ClientError
 

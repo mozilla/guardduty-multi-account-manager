@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Mozilla Multi Account Manager inviation manager lambda function to run in master account.
+Description: Mozilla Multi Account Manager invitation manager lambda function to run in master account.
 Metadata:
   Source: https://github.com/mozilla/guardduty-multi-account-manager/tree/master/cloudformation
 Parameters:
